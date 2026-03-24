@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel - Escritorio de Advocacia</title>
+    <!-- Bootstrap -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <!-- Tema visual do sistema -->
+    <style>
+      :root {
+        --azul-escuro: #0a1f44;
+        --azul-claro: #9ec5fe;
+        --branco: #ffffff;
+        --preto: #111111;
+      }
+
+      body {
+        background-color: var(--azul-escuro);
+        color: var(--branco);
+        min-height: 100vh;
+      }
+
+      .card-light {
+        background-color: var(--azul-claro);
+        color: var(--preto);
+        border: none;
+      }
+
+      .table-wrapper {
+        background-color: var(--azul-claro);
+        color: var(--preto);
+        border-radius: 0.75rem;
+        padding: 1rem;
+      }
+
+      .table thead th {
+        background-color: #cfe2ff;
+        color: var(--preto);
+      }
+
+      .text-muted-soft {
+        color: #dbe7ff !important;
+      }
+
+      .json-box {
+        background-color: #dbeafe;
+        color: var(--preto);
+        border-radius: 0.75rem;
+        padding: 0.75rem;
+        max-height: 260px;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Estrutura principal da pagina -->
+    <main class="container py-4 py-md-5">
+      <header class="mb-4">
+        <h1 class="fw-bold mb-1">Sistema - Escritorio de Advocacia</h1>
+        <p class="text-muted-soft mb-0">
+          Painel para consultas das rotas GET do backend.
+        </p>
+      </header>
+
+      <!-- Acoes rapidas: listagens GET -->
+      <section class="row g-3 mb-4">
+        <div class="col-12 col-md-6 col-xl-3">
+          <div class="card card-light h-100">
+            <div class="card-body">
+              <h2 class="h5">Advogados</h2>
+              <p class="mb-3">Listar e buscar por nome.</p>
+              <button id="btnAdvogados" class="btn btn-dark w-100">Carregar /advogados</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <div class="card card-light h-100">
+            <div class="card-body">
+              <h2 class="h5">Clientes</h2>
+              <p class="mb-3">Listar e buscar por nome.</p>
+              <button id="btnClientes" class="btn btn-dark w-100">Carregar /clientes</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <div class="card card-light h-100">
+            <div class="card-body">
+              <h2 class="h5">Escritorios</h2>
+              <p class="mb-3">Listar e buscar por email/telefone.</p>
+              <button id="btnEscritorios" class="btn btn-dark w-100">Carregar /escritorios</button>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl-3">
+          <div class="card card-light h-100">
+            <div class="card-body">
+              <h2 class="h5">Processos</h2>
+              <p class="mb-3">Listar todos os processos.</p>
+              <button id="btnProcessos" class="btn btn-dark w-100">Carregar /processos</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Formularios de busca GET -->
+      <section class="row g-4 mb-4">
+        <div class="col-12 col-lg-6">
+          <div class="table-wrapper">
+            <h3 class="h5">Buscar advogado por nome</h3>
+            <form id="formAdvogadoNome" class="row g-2">
+              <div class="col-8">
+                <input class="form-control" name="nome" placeholder="Ex.: Joao Silva" required />
+              </div>
+              <div class="col-4">
+                <button class="btn btn-dark w-100" type="submit">Buscar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="table-wrapper">
+            <h3 class="h5">Buscar cliente por nome</h3>
+            <form id="formClienteNome" class="row g-2">
+              <div class="col-8">
+                <input class="form-control" name="nome" placeholder="Ex.: Maria Souza" required />
+              </div>
+              <div class="col-4">
+                <button class="btn btn-dark w-100" type="submit">Buscar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="table-wrapper">
+            <h3 class="h5">Buscar escritorio por email</h3>
+            <form id="formEscritorioEmail" class="row g-2">
+              <div class="col-8">
+                <input class="form-control" name="email" placeholder="Ex.: contato@alpha.com" required />
+              </div>
+              <div class="col-4">
+                <button class="btn btn-dark w-100" type="submit">Buscar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="table-wrapper">
+            <h3 class="h5">Buscar escritorio por telefone</h3>
+            <form id="formEscritorioTelefone" class="row g-2">
+              <div class="col-8">
+                <input class="form-control" name="telefone" placeholder="Ex.: 65999990000" required />
+              </div>
+              <div class="col-4">
+                <button class="btn btn-dark w-100" type="submit">Buscar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- Area de resultados em tabela -->
+      <section class="table-wrapper mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 id="tableTitle" class="h5 mb-0">Resultados</h2>
+          <small id="statusText" class="text-dark">Nenhuma consulta executada.</small>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle mb-0">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Area de debug: resposta JSON bruta -->
+      <section class="table-wrapper">
+        <h2 class="h5">Resposta bruta (JSON)</h2>
+        <pre id="jsonOutput" class="json-box mb-0">[]</pre>
+      </section>
+    </main>
+
+    <!-- Script da pagina -->
+    <script src="./main.js"></script>
+  </body>
+</html>
