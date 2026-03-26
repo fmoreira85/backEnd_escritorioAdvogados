@@ -107,6 +107,97 @@
           </div>
         </section>
 
+        <section class="panel" aria-label="Operacoes de escrita">
+          <div class="panel-head">
+            <h3>Operacoes de Escrita</h3>
+          </div>
+
+          <form id="formWriteOperation" class="write-grid">
+            <label class="field-block" for="writeResource">
+              Recurso
+              <select id="writeResource" class="input" name="resource">
+                <option value="advogados">Advogados</option>
+                <option value="clientes">Clientes</option>
+                <option value="escritorios">Escritorios</option>
+                <option value="processos">Processos</option>
+              </select>
+            </label>
+
+            <label class="field-block" for="writeMethod">
+              Acao
+              <select id="writeMethod" class="input" name="method">
+                <option value="criar">Criar</option>
+                <option value="atualizar">Atualizar</option>
+                <option value="apagar">Apagar</option>
+              </select>
+            </label>
+
+            <label class="field-block" for="writeId">
+              ID (obrigatorio em Atualizar e Apagar)
+              <input id="writeId" class="input" name="id" placeholder="Ex.: 1" />
+            </label>
+
+            <div id="simpleAdvogados" class="field-block field-block-full simple-box" aria-label="Formulario simples de advogado">
+              <strong>Formulario de Advogados</strong>
+              <div class="simple-grid">
+                <input id="advEscritorioId" class="input" placeholder="Escritorio ID *" />
+                <input id="advNome" class="input" placeholder="Nome *" />
+                <input id="advOab" class="input" placeholder="OAB *" />
+                <input id="advEspecialidade" class="input" placeholder="Especialidade" />
+                <input id="advEmail" class="input" placeholder="Email" />
+                <input id="advTelefone" class="input" placeholder="Telefone" />
+                <select id="advAtivo" class="input">
+                  <option value="1">Ativo</option>
+                  <option value="0">Inativo</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="simpleClientes" class="field-block field-block-full simple-box" aria-label="Formulario simples de cliente" hidden>
+              <strong>Formulario de Clientes</strong>
+              <div class="simple-grid">
+                <input id="cliNome" class="input" placeholder="Nome *" />
+                <input id="cliDocumento" class="input" placeholder="Documento" />
+                <input id="cliEmail" class="input" placeholder="Email" />
+                <input id="cliTelefone" class="input" placeholder="Telefone" />
+                <input id="cliEndereco" class="input" placeholder="Endereco" />
+                <input id="cliCidade" class="input" placeholder="Cidade" />
+                <input id="cliEstado" class="input" placeholder="Estado" />
+                <input id="cliCep" class="input" placeholder="CEP" />
+              </div>
+            </div>
+
+            <div id="simpleEscritorios" class="field-block field-block-full simple-box" aria-label="Formulario simples de escritorio" hidden>
+              <strong>Formulario de Escritorios</strong>
+              <div class="simple-grid">
+                <input id="escNome" class="input" placeholder="Nome *" />
+                <input id="escCnpj" class="input" placeholder="CNPJ *" />
+                <input id="escEmail" class="input" placeholder="Email" />
+                <input id="escTelefone" class="input" placeholder="Telefone" />
+                <input id="escEndereco" class="input" placeholder="Endereco" />
+                <input id="escCidade" class="input" placeholder="Cidade" />
+                <input id="escEstado" class="input" placeholder="Estado" />
+                <input id="escCep" class="input" placeholder="CEP" />
+              </div>
+            </div>
+
+            <div id="simpleProcessos" class="field-block field-block-full simple-box" aria-label="Formulario simples de processo" hidden>
+              <strong>Formulario de Processos</strong>
+              <div class="simple-grid">
+                <input id="proEscritorioId" class="input" placeholder="Escritorio ID (obrigatorio em Atualizar)" />
+                <input id="proAdvogadoId" class="input" placeholder="Advogado ID" />
+                <input id="proClienteId" class="input" placeholder="Cliente ID" />
+                <input id="proNumero" class="input" placeholder="Numero" />
+                <input id="proTitulo" class="input" placeholder="Titulo" />
+                <input id="proStatus" class="input" placeholder="Status" />
+                <input id="proDescricao" class="input" placeholder="Descricao" />
+              </div>
+            </div>
+
+            <button class="btn" type="submit">Executar operacao</button>
+          </form>
+        </section>
+
       </main>
     </div>
 
