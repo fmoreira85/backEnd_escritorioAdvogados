@@ -1,4 +1,6 @@
 function buildApiBaseCandidates() {
+  // Monta uma lista de URLs possíveis da API para facilitar quando mudar de ambiente
+  // (localhost, 127.0.0.1, etc.) sem precisar alterar o código toda hora.
   const configured = window.localStorage.getItem("API_BASE_URL");
   const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
 
@@ -11,6 +13,7 @@ function buildApiBaseCandidates() {
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();
 let activeApiBase = API_BASE_CANDIDATES[0];
+// "activeResource" controla qual módulo está ativo na tela (dashboard, advogados, etc.).
 let activeResource = "dashboard";
 let lastRenderedRows = [];
 let lastRenderedColumns = [];
@@ -88,6 +91,7 @@ const deleteConfirmModal =
   deleteConfirmModalEl && window.bootstrap
     ? new window.bootstrap.Modal(deleteConfirmModalEl)
     : null;
+// Resolver da Promise usada para esperar a resposta do usuário no modal de exclusão.
 let deleteConfirmResolver = null;
 let dashboardChart = null;
 
@@ -169,6 +173,7 @@ function escapeHtml(value) {
 }
 
 function setStatus(message, tone = "neutral") {
+  // Atualiza a "mensagem de status" no topo e aplica a cor do alerta Bootstrap.
   statusText.textContent = message;
   statusText.classList.remove(
     "status-danger",
@@ -207,6 +212,7 @@ function applyClientFilter(rows, query) {
 }
 
 function paintTable(columns, rows) {
+  // Só mostramos a coluna "ações" (com botão Excluir) em módulos de entidade.
   const showDeleteAction = ["advogados", "clientes", "escritorios", "processos"].includes(
     activeResource
   );
@@ -258,6 +264,7 @@ function refreshFilteredTable() {
 }
 
 function renderTable(title, payload) {
+  // "payload" pode vir como objeto único ou array; aqui normalizamos para array.
   const rows = normalizeRows(payload);
   const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
 
@@ -269,6 +276,7 @@ function renderTable(title, payload) {
 }
 
 function activateNav(buttonId) {
+  // Marca visualmente o botão ativo na sidebar.
   navButtons.forEach((button) => {
     button.classList.toggle("is-active", button.id === buttonId);
   });
@@ -279,6 +287,7 @@ function activateNav(buttonId) {
   const resource = resourceByNavButton[buttonId];
   if (resource) {
     activeResource = resource;
+    // Dashboard mostra painel de métricas; entidades mostram filtros + formulário.
     const isDashboard = resource === "dashboard";
     dashboardPanel.hidden = !isDashboard;
     filtersPanel.hidden = isDashboard;
@@ -303,6 +312,7 @@ function toNumberOrNull(value) {
 }
 
 function toggleSimpleForms() {
+  // Exibe apenas o formulário da entidade ativa e desabilita os demais campos.
   const resource = writeResource.value;
   const formBoxes = {
     advogados: simpleAdvogados,
@@ -323,6 +333,7 @@ function toggleSimpleForms() {
 }
 
 function toggleFilterForms(resource) {
+  // Mostra filtros específicos do módulo selecionado (ex.: nome para clientes).
   allContextualFilterForms.forEach((form) => {
     form.hidden = !(filterFormsByResource[resource] || []).includes(form);
   });
@@ -412,6 +423,7 @@ function buildPayloadFromSimpleForm(resource, method) {
 }
 
 async function fetchWithFallback(endpoint, options = {}) {
+  // Tenta cada URL candidata da API até encontrar uma que responda.
   let lastError = null;
 
   for (const base of API_BASE_CANDIDATES) {
@@ -437,6 +449,7 @@ async function parseResponseJson(response) {
 }
 
 async function fetchGet(endpoint, title, buttonId = "") {
+  // Fluxo padrão para consultas GET e renderização da tabela.
   try {
     setStatus(`Consultando ${endpoint} em ${activeApiBase}...`);
     if (buttonId) activateNav(buttonId);
@@ -464,6 +477,7 @@ async function fetchGet(endpoint, title, buttonId = "") {
 }
 
 async function fetchCollection(resource) {
+  // Helper para buscar coleção completa de uma entidade (usado no dashboard).
   const response = await fetchWithFallback(listRouteByResource[resource]);
   const data = await parseResponseJson(response);
   if (!response.ok) {
@@ -474,6 +488,7 @@ async function fetchCollection(resource) {
 }
 
 async function loadDashboard() {
+  // Carrega os 4 módulos em paralelo para montar os indicadores rapidamente.
   activateNav("btnDashboard");
   tableTitle.textContent = "Resumo Operacional";
   setStatus("Carregando indicadores operacionais...", "neutral");
@@ -518,6 +533,7 @@ async function loadDashboard() {
 }
 
 function updateDashboardChart(values) {
+  // Atualiza (ou recria) o gráfico do dashboard com os totais atuais.
   if (!dashboardChartCanvas || !window.Chart) return;
 
   if (dashboardChart) {
@@ -562,6 +578,8 @@ function updateDashboardChart(values) {
 }
 
 async function submitWriteOperation(event) {
+  // Aqui tratamos "Criar" e "Atualizar" do formulário principal.
+  // Exclusão foi propositalmente removida deste fluxo para evitar erros de UX.
   event.preventDefault();
 
   const resource = writeResource.value;
@@ -632,6 +650,7 @@ async function submitWriteOperation(event) {
 }
 
 async function handleTableActionClick(event) {
+  // Event delegation: um único listener no <tbody> captura clique nos botões "Excluir".
   const deleteButton = event.target.closest(".btn-row-delete");
   if (!deleteButton) return;
 
@@ -675,6 +694,7 @@ async function handleTableActionClick(event) {
 }
 
 async function askDeleteConfirmation(resourceLabel, id) {
+  // Abre modal Bootstrap e retorna true/false como Promise (confirmou/cancelou).
   if (!deleteConfirmModal || !deleteConfirmText || !btnConfirmDelete) return true;
 
   deleteConfirmText.textContent = `Confirma excluir o item ${id} de ${resourceLabel}? Essa acao nao pode ser desfeita.`;
