@@ -1,18 +1,22 @@
 :root {
-  --color-primary: oklch(42.4% 0.199 265.638);
+  --color-primary: #0d6efd;
   --color-primary-text: #ffffff;
   --color-secondary-text: #000000;
-  --color-danger: oklch(45.5% 0.188 13.697);
+  --color-danger: #dc3545;
   --color-danger-text: #ffffff;
-  --color-success: oklch(44.8% 0.119 151.328);
+  --color-success: #0a58ca;
   --color-success-text: #ffffff;
-  --color-border: oklch(80% 0.03 249);
+  --color-border: #9ec5fe;
   --font-ui: "IBM Plex Sans", "Segoe UI", sans-serif;
   --shadow-soft: 0 12px 28px rgba(8, 18, 42, 0.12);
 }
 
 * {
   box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 html,
@@ -24,7 +28,7 @@ body {
 body {
   font-family: var(--font-ui);
   color: var(--color-secondary-text);
-  background: linear-gradient(155deg, oklch(96% 0.012 260), oklch(92% 0.018 252));
+  background: linear-gradient(155deg, #ffffff, #e7f1ff);
 }
 
 .app-shell {
@@ -115,8 +119,6 @@ body {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: #ffffff;
-  color: var(--color-primary);
   padding: 8px 12px;
   font-size: 0.88rem;
   max-width: 520px;
@@ -139,9 +141,10 @@ body {
 }
 
 .kpi-card {
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-  border: 1px solid color-mix(in oklch, var(--color-primary), white 32%);
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 62%);
+  border-top: 4px solid var(--color-primary);
   border-radius: 14px;
   padding: 14px;
   box-shadow: var(--shadow-soft);
@@ -169,17 +172,18 @@ body {
 }
 
 .panel {
-  background: var(--color-primary);
-  color: var(--color-primary-text);
+  background: #ffffff;
+  color: #000000;
   border-radius: 16px;
-  border: 1px solid color-mix(in oklch, var(--color-primary), white 34%);
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 70%);
   box-shadow: var(--shadow-soft);
   overflow: hidden;
 }
 
 .panel-head {
   padding: 14px 16px;
-  border-bottom: 1px solid color-mix(in oklch, var(--color-primary), white 34%);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary), white 78%);
+  background: #f3f8ff;
 }
 
 .panel-head h3 {
@@ -199,10 +203,58 @@ body {
   gap: 6px;
 }
 
+.resource-form-section {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 72%);
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.section-caption {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.section-note {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.dashboard-grid {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.dashboard-card {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 65%);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.dashboard-label {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  opacity: 0.86;
+}
+
+.dashboard-value {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
 .inline-form label {
   font-size: 0.86rem;
   font-weight: 600;
-  color: var(--color-primary-text);
+  color: #111827;
 }
 
 .write-grid {
@@ -223,6 +275,27 @@ body {
   grid-column: 1 / -1;
 }
 
+.resource-current {
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 70%);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f5f9ff;
+}
+
+.entity-helper {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px dashed color-mix(in srgb, var(--color-primary), white 72%);
+  border-radius: 10px;
+  background: #fbfdff;
+  color: #1f2937;
+}
+
+.entity-title {
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+}
+
 .input-textarea {
   resize: vertical;
   min-height: 140px;
@@ -230,10 +303,10 @@ body {
 }
 
 .simple-box {
-  background: transparent;
-  border: 1px solid color-mix(in oklch, var(--color-primary), white 34%);
+  background: #f8fbff;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 72%);
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
   gap: 10px;
 }
 
@@ -268,35 +341,25 @@ body {
   border-color: transparent;
 }
 
-.btn {
-  border: none;
-  border-radius: 10px;
-  background: var(--color-primary);
-  color: var(--color-primary-text);
-  padding: 10px 14px;
-  cursor: pointer;
-  font-weight: 600;
+.panel .btn-danger {
+  background: var(--color-danger);
+  color: var(--color-danger-text);
 }
 
-.btn-secondary {
-  background: color-mix(in oklch, var(--color-primary), white 58%);
-  color: var(--color-primary-text);
+.panel .btn-danger:hover {
+  background: #bb2d3b;
 }
 
-.panel .btn {
-  background: #ffffff;
-  color: #000000;
+.btn-row-delete {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
-.panel .btn:hover {
-  background: color-mix(in oklch, white, var(--color-primary) 14%);
-}
-
-.panel .btn-secondary {
-  background: color-mix(in oklch, white, var(--color-primary) 20%);
-  color: #000000;
-  font-weight: 700;
+.btn-submit-entity {
+  justify-self: start;
+  min-width: 220px;
 }
 
 .table-wrap {
@@ -310,40 +373,32 @@ table {
 }
 
 .panel thead {
-  background: color-mix(in oklch, var(--color-primary), white 14%);
+  background: #ecf4ff;
 }
 
 th,
 td {
   text-align: left;
   padding: 10px 12px;
-  border-bottom: 1px solid color-mix(in oklch, var(--color-primary), white 34%);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-primary), white 80%);
   font-size: 0.92rem;
-  color: var(--color-primary-text);
+  color: #111827;
 }
 
 .panel tbody tr:nth-child(odd) {
   background: #ffffff;
 }
 
-.panel tbody tr:nth-child(odd) td {
-  color: #000000;
-}
-
 .panel tbody tr:nth-child(even) {
-  background: #ffffff;
-}
-
-.panel tbody tr:nth-child(even) td {
-  color: #000000;
+  background: #f8fbff;
 }
 
 .panel tbody tr:hover:nth-child(odd) {
-  background: #ffffff;
+  background: #f1f7ff;
 }
 
 .panel tbody tr:hover:nth-child(even) {
-  background: #ffffff;
+  background: #eef5ff;
 }
 
 .empty-row {
@@ -365,6 +420,10 @@ td {
 
   .simple-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -388,4 +447,18 @@ td {
   .kpi-grid {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
 }
+
+.dashboard-chart-wrap {
+  margin: 0 16px 16px;
+  background: #ffffff;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 72%);
+  border-radius: 14px;
+  padding: 12px;
+  height: 320px;
+}
+

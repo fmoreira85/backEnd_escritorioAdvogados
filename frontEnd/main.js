@@ -11,20 +11,39 @@ function buildApiBaseCandidates() {
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();
 let activeApiBase = API_BASE_CANDIDATES[0];
+let activeResource = "dashboard";
 let lastRenderedRows = [];
 let lastRenderedColumns = [];
 
 const tableTitle = document.getElementById("tableTitle");
 const statusText = document.getElementById("statusText");
+const dashboardPanel = document.getElementById("dashboardPanel");
+const filtersPanel = document.getElementById("filtersPanel");
+const resultsPanel = document.getElementById("resultsPanel");
+const writePanel = document.getElementById("writePanel");
 const tableHead = document.getElementById("tableHead");
 const tableBody = document.getElementById("tableBody");
 const tableFilter = document.getElementById("tableFilter");
 const btnClearFilter = document.getElementById("btnClearFilter");
+const dashAdvogados = document.getElementById("dashAdvogados");
+const dashClientes = document.getElementById("dashClientes");
+const dashEscritorios = document.getElementById("dashEscritorios");
+const dashProcessos = document.getElementById("dashProcessos");
+const dashboardChartCanvas = document.getElementById("dashboardChart");
+const formAdvogadoNome = document.getElementById("formAdvogadoNome");
+const formClienteNome = document.getElementById("formClienteNome");
+const formEscritorioEmail = document.getElementById("formEscritorioEmail");
+const formEscritorioTelefone = document.getElementById("formEscritorioTelefone");
+const filterSectionAdvogados = document.getElementById("filterSectionAdvogados");
+const filterSectionClientes = document.getElementById("filterSectionClientes");
+const filterSectionEscritorios = document.getElementById("filterSectionEscritorios");
+const filterSectionProcessos = document.getElementById("filterSectionProcessos");
 const kpiRows = document.getElementById("kpiRows");
 const kpiModulo = document.getElementById("kpiModulo");
 const navButtons = [...document.querySelectorAll(".nav-item")];
 const formWriteOperation = document.getElementById("formWriteOperation");
 const writeResource = document.getElementById("writeResource");
+const writeResourceLabel = document.getElementById("writeResourceLabel");
 const writeMethod = document.getElementById("writeMethod");
 const writeId = document.getElementById("writeId");
 const simpleAdvogados = document.getElementById("simpleAdvogados");
@@ -61,6 +80,16 @@ const proNumero = document.getElementById("proNumero");
 const proTitulo = document.getElementById("proTitulo");
 const proStatus = document.getElementById("proStatus");
 const proDescricao = document.getElementById("proDescricao");
+const deleteConfirmModalEl = document.getElementById("deleteConfirmModal");
+const deleteConfirmText = document.getElementById("deleteConfirmText");
+const btnConfirmDelete = document.getElementById("btnConfirmDelete");
+
+const deleteConfirmModal =
+  deleteConfirmModalEl && window.bootstrap
+    ? new window.bootstrap.Modal(deleteConfirmModalEl)
+    : null;
+let deleteConfirmResolver = null;
+let dashboardChart = null;
 
 const createRouteByResource = {
   advogados: "/criar-advogado",
@@ -83,10 +112,39 @@ const navButtonByResource = {
   processos: "btnProcessos",
 };
 
+const resourceByNavButton = {
+  btnDashboard: "dashboard",
+  btnAdvogados: "advogados",
+  btnClientes: "clientes",
+  btnEscritorios: "escritorios",
+  btnProcessos: "processos",
+};
+
+const filterFormsByResource = {
+  advogados: [formAdvogadoNome],
+  clientes: [formClienteNome],
+  escritorios: [formEscritorioEmail, formEscritorioTelefone],
+  processos: [],
+};
+
+const allContextualFilterForms = Object.values(filterFormsByResource).flat();
+const filterSectionsByResource = {
+  advogados: filterSectionAdvogados,
+  clientes: filterSectionClientes,
+  escritorios: filterSectionEscritorios,
+  processos: filterSectionProcessos,
+};
+const resourceLabelByKey = {
+  dashboard: "Dashboard",
+  advogados: "Advogados",
+  clientes: "Clientes",
+  escritorios: "Escritorios",
+  processos: "Processos",
+};
+
 const actionToHttpMethod = {
   criar: "POST",
   atualizar: "PUT",
-  apagar: "DELETE",
   POST: "POST",
   PUT: "PUT",
   DELETE: "DELETE",
@@ -112,10 +170,25 @@ function escapeHtml(value) {
 
 function setStatus(message, tone = "neutral") {
   statusText.textContent = message;
-  statusText.classList.remove("status-danger", "status-success");
+  statusText.classList.remove(
+    "status-danger",
+    "status-success",
+    "alert-danger",
+    "alert-success",
+    "alert-secondary"
+  );
 
-  if (tone === "danger") statusText.classList.add("status-danger");
-  if (tone === "success") statusText.classList.add("status-success");
+  if (tone === "danger") {
+    statusText.classList.add("status-danger", "alert-danger");
+    return;
+  }
+
+  if (tone === "success") {
+    statusText.classList.add("status-success", "alert-success");
+    return;
+  }
+
+  statusText.classList.add("alert-secondary");
 }
 
 function normalizeRows(payload) {
@@ -134,17 +207,23 @@ function applyClientFilter(rows, query) {
 }
 
 function paintTable(columns, rows) {
+  const showDeleteAction = ["advogados", "clientes", "escritorios", "processos"].includes(
+    activeResource
+  );
+
+  const headColumns = showDeleteAction ? [...columns, "acoes"] : columns;
+
   if (rows.length === 0) {
-    tableHead.innerHTML = columns.length
-      ? `<tr>${columns.map((col) => `<th>${escapeHtml(col)}</th>`).join("")}</tr>`
+    tableHead.innerHTML = headColumns.length
+      ? `<tr>${headColumns.map((col) => `<th>${escapeHtml(col)}</th>`).join("")}</tr>`
       : "";
 
-    const span = Math.max(columns.length, 1);
+    const span = Math.max(headColumns.length, 1);
     tableBody.innerHTML = `<tr><td class="empty-row" colspan="${span}">Nenhum registro encontrado.</td></tr>`;
     return;
   }
 
-  tableHead.innerHTML = `<tr>${columns.map((col) => `<th>${escapeHtml(col)}</th>`).join("")}</tr>`;
+  tableHead.innerHTML = `<tr>${headColumns.map((col) => `<th>${escapeHtml(col)}</th>`).join("")}</tr>`;
   tableBody.innerHTML = rows
     .map(
       (row) => `
@@ -155,6 +234,17 @@ function paintTable(columns, rows) {
             return `<td>${escapeHtml(value == null ? "-" : value)}</td>`;
           })
           .join("")}
+        ${
+          showDeleteAction
+            ? `<td>${
+                row.id == null
+                  ? "-"
+                  : `<button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapeHtml(
+                      activeResource
+                    )}" data-id="${escapeHtml(String(row.id))}">Excluir</button>`
+              }</td>`
+            : ""
+        }
       </tr>
     `
     )
@@ -185,6 +275,26 @@ function activateNav(buttonId) {
 
   const activeName = document.getElementById(buttonId)?.textContent?.trim() || "-";
   kpiModulo.textContent = activeName;
+
+  const resource = resourceByNavButton[buttonId];
+  if (resource) {
+    activeResource = resource;
+    const isDashboard = resource === "dashboard";
+    dashboardPanel.hidden = !isDashboard;
+    filtersPanel.hidden = isDashboard;
+    writePanel.hidden = isDashboard;
+    resultsPanel.hidden = false;
+
+    if (isDashboard) {
+      kpiModulo.textContent = "Dashboard";
+      return;
+    }
+
+    toggleFilterForms(resource);
+    writeResource.value = resource;
+    writeResourceLabel.textContent = resourceLabelByKey[resource] || resource;
+    toggleSimpleForms();
+  }
 }
 
 function toNumberOrNull(value) {
@@ -194,10 +304,33 @@ function toNumberOrNull(value) {
 
 function toggleSimpleForms() {
   const resource = writeResource.value;
-  simpleAdvogados.hidden = resource !== "advogados";
-  simpleClientes.hidden = resource !== "clientes";
-  simpleEscritorios.hidden = resource !== "escritorios";
-  simpleProcessos.hidden = resource !== "processos";
+  const formBoxes = {
+    advogados: simpleAdvogados,
+    clientes: simpleClientes,
+    escritorios: simpleEscritorios,
+    processos: simpleProcessos,
+  };
+
+  Object.entries(formBoxes).forEach(([boxResource, boxElement]) => {
+    if (!boxElement) return;
+    const isActive = boxResource === resource;
+    boxElement.hidden = !isActive;
+
+    boxElement.querySelectorAll("input, select, textarea, button").forEach((field) => {
+      field.disabled = !isActive;
+    });
+  });
+}
+
+function toggleFilterForms(resource) {
+  allContextualFilterForms.forEach((form) => {
+    form.hidden = !(filterFormsByResource[resource] || []).includes(form);
+  });
+
+  Object.entries(filterSectionsByResource).forEach(([sectionResource, sectionElement]) => {
+    if (!sectionElement) return;
+    sectionElement.hidden = sectionResource !== resource;
+  });
 }
 
 function buildAdvogadoPayloadFromSimpleForm() {
@@ -330,6 +463,104 @@ async function fetchGet(endpoint, title, buttonId = "") {
   }
 }
 
+async function fetchCollection(resource) {
+  const response = await fetchWithFallback(listRouteByResource[resource]);
+  const data = await parseResponseJson(response);
+  if (!response.ok) {
+    const message = data?.error || `Erro HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return Array.isArray(data) ? data : [];
+}
+
+async function loadDashboard() {
+  activateNav("btnDashboard");
+  tableTitle.textContent = "Resumo Operacional";
+  setStatus("Carregando indicadores operacionais...", "neutral");
+
+  try {
+    const [advogados, clientes, escritorios, processos] = await Promise.all([
+      fetchCollection("advogados"),
+      fetchCollection("clientes"),
+      fetchCollection("escritorios"),
+      fetchCollection("processos"),
+    ]);
+
+    dashAdvogados.textContent = String(advogados.length);
+    dashClientes.textContent = String(clientes.length);
+    dashEscritorios.textContent = String(escritorios.length);
+    dashProcessos.textContent = String(processos.length);
+    updateDashboardChart([
+      advogados.length,
+      clientes.length,
+      escritorios.length,
+      processos.length,
+    ]);
+
+    const dashboardRows = [
+      { modulo: "Advogados", total: advogados.length },
+      { modulo: "Clientes", total: clientes.length },
+      { modulo: "Escritorios", total: escritorios.length },
+      { modulo: "Processos", total: processos.length },
+    ];
+
+    renderTable("Resumo Operacional", dashboardRows);
+    setStatus(`Dashboard atualizado (${activeApiBase}).`, "success");
+  } catch (error) {
+    dashAdvogados.textContent = "0";
+    dashClientes.textContent = "0";
+    dashEscritorios.textContent = "0";
+    dashProcessos.textContent = "0";
+    updateDashboardChart([0, 0, 0, 0]);
+    renderTable("Resumo Operacional", []);
+    setStatus(`Falha ao carregar dashboard: ${error.message}`, "danger");
+  }
+}
+
+function updateDashboardChart(values) {
+  if (!dashboardChartCanvas || !window.Chart) return;
+
+  if (dashboardChart) {
+    dashboardChart.destroy();
+    dashboardChart = null;
+  }
+
+  dashboardChart = new window.Chart(dashboardChartCanvas, {
+    type: "bar",
+    data: {
+      labels: ["Advogados", "Clientes", "Escritorios", "Processos"],
+      datasets: [
+        {
+          label: "Total de Registros",
+          data: values,
+          backgroundColor: ["#0d6efd", "#2f80ed", "#111827", "#5b8def"],
+          borderColor: "#0b1220",
+          borderWidth: 1,
+          borderRadius: 8,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            stepSize: 1,
+          },
+        },
+      },
+    },
+  });
+}
+
 async function submitWriteOperation(event) {
   event.preventDefault();
 
@@ -343,6 +574,11 @@ async function submitWriteOperation(event) {
     return;
   }
 
+  if (method === "DELETE") {
+    setStatus("Exclusao permitida apenas pelo botao Excluir na tabela.", "danger");
+    return;
+  }
+
   let endpoint = "";
   let payload = null;
 
@@ -350,7 +586,7 @@ async function submitWriteOperation(event) {
     endpoint = createRouteByResource[resource];
   } else {
     if (!id) {
-      setStatus("Informe o ID para as acoes Atualizar e Apagar.", "danger");
+      setStatus("Informe o ID para a acao Atualizar.", "danger");
       return;
     }
 
@@ -395,6 +631,83 @@ async function submitWriteOperation(event) {
   }
 }
 
+async function handleTableActionClick(event) {
+  const deleteButton = event.target.closest(".btn-row-delete");
+  if (!deleteButton) return;
+
+  const resource = deleteButton.dataset.resource;
+  const id = deleteButton.dataset.id;
+
+  if (!resource || !id) {
+    setStatus("Nao foi possivel identificar o item para exclusao.", "danger");
+    return;
+  }
+
+  const resourceLabel = resourceLabelByKey[resource] || resource;
+  const confirmed = await askDeleteConfirmation(resourceLabel, id);
+  if (!confirmed) return;
+
+  try {
+    deleteButton.disabled = true;
+    setStatus(`Excluindo item ${id} de ${resourceLabel}...`);
+
+    const response = await fetchWithFallback(`/${resource}/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+
+    const data = await parseResponseJson(response);
+    if (!response.ok) {
+      const message = data?.error || `Erro HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
+    setStatus(`Item ${id} excluido com sucesso em ${resourceLabel}.`, "success");
+    await fetchGet(
+      listRouteByResource[resource],
+      `Lista de ${resourceLabel}`,
+      navButtonByResource[resource]
+    );
+  } catch (error) {
+    setStatus(`Falha ao excluir item ${id}: ${error.message}`, "danger");
+  } finally {
+    deleteButton.disabled = false;
+  }
+}
+
+async function askDeleteConfirmation(resourceLabel, id) {
+  if (!deleteConfirmModal || !deleteConfirmText || !btnConfirmDelete) return true;
+
+  deleteConfirmText.textContent = `Confirma excluir o item ${id} de ${resourceLabel}? Essa acao nao pode ser desfeita.`;
+
+  return new Promise((resolve) => {
+    deleteConfirmResolver = resolve;
+    deleteConfirmModal.show();
+  });
+}
+
+if (btnConfirmDelete) {
+  btnConfirmDelete.addEventListener("click", () => {
+    if (deleteConfirmResolver) {
+      deleteConfirmResolver(true);
+      deleteConfirmResolver = null;
+    }
+    if (deleteConfirmModal) deleteConfirmModal.hide();
+  });
+}
+
+if (deleteConfirmModalEl) {
+  deleteConfirmModalEl.addEventListener("hidden.bs.modal", () => {
+    if (deleteConfirmResolver) {
+      deleteConfirmResolver(false);
+      deleteConfirmResolver = null;
+    }
+  });
+}
+
+document.getElementById("btnDashboard").addEventListener("click", () => {
+  loadDashboard();
+});
+
 document.getElementById("btnAdvogados").addEventListener("click", () => {
   fetchGet("/advogados", "Lista de Advogados", "btnAdvogados");
 });
@@ -411,7 +724,7 @@ document.getElementById("btnProcessos").addEventListener("click", () => {
   fetchGet("/processos", "Lista de Processos", "btnProcessos");
 });
 
-document.getElementById("formAdvogadoNome").addEventListener("submit", (event) => {
+formAdvogadoNome.addEventListener("submit", (event) => {
   event.preventDefault();
   const nome = event.target.nome.value.trim();
   if (!nome) return;
@@ -419,7 +732,7 @@ document.getElementById("formAdvogadoNome").addEventListener("submit", (event) =
   fetchGet(`/advogados/nome/${encodeURIComponent(nome)}`, `Advogado por nome: ${nome}`);
 });
 
-document.getElementById("formClienteNome").addEventListener("submit", (event) => {
+formClienteNome.addEventListener("submit", (event) => {
   event.preventDefault();
   const nome = event.target.nome.value.trim();
   if (!nome) return;
@@ -427,7 +740,7 @@ document.getElementById("formClienteNome").addEventListener("submit", (event) =>
   fetchGet(`/clientes/nome/${encodeURIComponent(nome)}`, `Cliente por nome: ${nome}`);
 });
 
-document.getElementById("formEscritorioEmail").addEventListener("submit", (event) => {
+formEscritorioEmail.addEventListener("submit", (event) => {
   event.preventDefault();
   const email = event.target.email.value.trim();
   if (!email) return;
@@ -435,7 +748,7 @@ document.getElementById("formEscritorioEmail").addEventListener("submit", (event
   fetchGet(`/escritorios/email/${encodeURIComponent(email)}`, `Escritorio por email: ${email}`);
 });
 
-document.getElementById("formEscritorioTelefone").addEventListener("submit", (event) => {
+formEscritorioTelefone.addEventListener("submit", (event) => {
   event.preventDefault();
   const telefone = event.target.telefone.value.trim();
   if (!telefone) return;
@@ -453,5 +766,5 @@ btnClearFilter.addEventListener("click", () => {
 });
 
 formWriteOperation.addEventListener("submit", submitWriteOperation);
-writeResource.addEventListener("change", toggleSimpleForms);
-toggleSimpleForms();
+tableBody.addEventListener("click", handleTableActionClick);
+loadDashboard();
