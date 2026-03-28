@@ -37,6 +37,10 @@ const formAdvogadoNome = document.getElementById("formAdvogadoNome");
 const formClienteNome = document.getElementById("formClienteNome");
 const formEscritorioEmail = document.getElementById("formEscritorioEmail");
 const formEscritorioTelefone = document.getElementById("formEscritorioTelefone");
+const advogadosNomesList = document.getElementById("advogadosNomesList");
+const clientesNomesList = document.getElementById("clientesNomesList");
+const escritoriosEmailsList = document.getElementById("escritoriosEmailsList");
+const escritoriosTelefonesList = document.getElementById("escritoriosTelefonesList");
 const filterSectionAdvogados = document.getElementById("filterSectionAdvogados");
 const filterSectionClientes = document.getElementById("filterSectionClientes");
 const filterSectionEscritorios = document.getElementById("filterSectionEscritorios");
@@ -47,8 +51,11 @@ const navButtons = [...document.querySelectorAll(".nav-item")];
 const formWriteOperation = document.getElementById("formWriteOperation");
 const writeResource = document.getElementById("writeResource");
 const writeResourceLabel = document.getElementById("writeResourceLabel");
+const entityHelperText = document.getElementById("entityHelperText");
 const writeMethod = document.getElementById("writeMethod");
 const writeId = document.getElementById("writeId");
+const writeMethodField = document.getElementById("writeMethodField");
+const writeIdField = document.getElementById("writeIdField");
 const simpleAdvogados = document.getElementById("simpleAdvogados");
 const simpleClientes = document.getElementById("simpleClientes");
 const simpleEscritorios = document.getElementById("simpleEscritorios");
@@ -86,14 +93,32 @@ const proDescricao = document.getElementById("proDescricao");
 const deleteConfirmModalEl = document.getElementById("deleteConfirmModal");
 const deleteConfirmText = document.getElementById("deleteConfirmText");
 const btnConfirmDelete = document.getElementById("btnConfirmDelete");
+const processEditModalEl = document.getElementById("processEditModal");
+const formProcessEdit = document.getElementById("formProcessEdit");
+const processEditId = document.getElementById("processEditId");
+const processEditEscritorioId = document.getElementById("processEditEscritorioId");
+const processEditAdvogadoId = document.getElementById("processEditAdvogadoId");
+const processEditClienteId = document.getElementById("processEditClienteId");
+const processEditNumero = document.getElementById("processEditNumero");
+const processEditTitulo = document.getElementById("processEditTitulo");
+const processEditStatus = document.getElementById("processEditStatus");
+const processEditDescricao = document.getElementById("processEditDescricao");
+const btnSaveProcessEdit = document.getElementById("btnSaveProcessEdit");
 
 const deleteConfirmModal =
   deleteConfirmModalEl && window.bootstrap
     ? new window.bootstrap.Modal(deleteConfirmModalEl)
     : null;
+const processEditModal =
+  processEditModalEl && window.bootstrap ? new window.bootstrap.Modal(processEditModalEl) : null;
 // Resolver da Promise usada para esperar a resposta do usuário no modal de exclusão.
 let deleteConfirmResolver = null;
 let dashboardChart = null;
+const referenceData = {
+  escritorios: [],
+  advogados: [],
+  clientes: [],
+};
 
 const createRouteByResource = {
   advogados: "/criar-advogado",
@@ -211,6 +236,133 @@ function applyClientFilter(rows, query) {
   );
 }
 
+function uniqueById(rows) {
+  const seen = new Set();
+  return rows.filter((row) => {
+    const key = String(row?.id ?? "");
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function buildEntityLabel(row, fallbackPrefix) {
+  const namePart = row.nome || row.titulo || row.numero || `${fallbackPrefix} ${row.id}`;
+  return `${row.id} - ${namePart}`;
+}
+
+function setSelectOptions(selectElement, rows, placeholderText, fallbackPrefix) {
+  if (!selectElement) return;
+  const safeRows = uniqueById(rows);
+  const optionsHtml = safeRows
+    .map((row) => `<option value="${escapeHtml(String(row.id))}">${escapeHtml(buildEntityLabel(row, fallbackPrefix))}</option>`)
+    .join("");
+  selectElement.innerHTML = `<option value="">${escapeHtml(placeholderText)}</option>${optionsHtml}`;
+}
+
+function setDatalistOptions(datalistElement, values) {
+  if (!datalistElement) return;
+  const uniqueValues = [...new Set(values.map((value) => String(value ?? "").trim()).filter(Boolean))];
+  datalistElement.innerHTML = uniqueValues
+    .map((value) => `<option value="${escapeHtml(value)}"></option>`)
+    .join("");
+}
+
+function ensureSelectHasValue(selectElement, value, prefix) {
+  if (!selectElement || value == null || value === "") return;
+  const valueText = String(value);
+  const exists = [...selectElement.options].some((option) => option.value === valueText);
+  if (!exists) {
+    const option = document.createElement("option");
+    option.value = valueText;
+    option.textContent = `${valueText} - ${prefix}`;
+    selectElement.appendChild(option);
+  }
+  selectElement.value = valueText;
+}
+
+function syncReferenceInputs() {
+  setSelectOptions(
+    advEscritorioId,
+    referenceData.escritorios,
+    "Selecione um escritorio *",
+    "Escritorio"
+  );
+  setSelectOptions(
+    proEscritorioId,
+    referenceData.escritorios,
+    "Selecione um escritorio *",
+    "Escritorio"
+  );
+  setSelectOptions(
+    processEditEscritorioId,
+    referenceData.escritorios,
+    "Selecione um escritorio *",
+    "Escritorio"
+  );
+  setSelectOptions(proAdvogadoId, referenceData.advogados, "Selecione um advogado", "Advogado");
+  setSelectOptions(
+    processEditAdvogadoId,
+    referenceData.advogados,
+    "Selecione um advogado",
+    "Advogado"
+  );
+  setSelectOptions(proClienteId, referenceData.clientes, "Selecione um cliente", "Cliente");
+  setSelectOptions(
+    processEditClienteId,
+    referenceData.clientes,
+    "Selecione um cliente",
+    "Cliente"
+  );
+
+  setDatalistOptions(
+    advogadosNomesList,
+    referenceData.advogados.map((row) => row.nome)
+  );
+  setDatalistOptions(
+    clientesNomesList,
+    referenceData.clientes.map((row) => row.nome)
+  );
+  setDatalistOptions(
+    escritoriosEmailsList,
+    referenceData.escritorios.map((row) => row.email)
+  );
+  setDatalistOptions(
+    escritoriosTelefonesList,
+    referenceData.escritorios.map((row) => row.telefone)
+  );
+}
+
+async function refreshReferenceData(resources = ["escritorios", "advogados", "clientes"]) {
+  const tasks = resources.map(async (resource) => {
+    try {
+      const rows = await fetchCollection(resource);
+      referenceData[resource] = rows;
+    } catch (_error) {
+      referenceData[resource] = [];
+    }
+  });
+
+  await Promise.all(tasks);
+  syncReferenceInputs();
+}
+
+function renderRowActions(row) {
+  if (row.id == null) return "-";
+
+  const escapedResource = escapeHtml(activeResource);
+  const escapedId = escapeHtml(String(row.id));
+
+  if (activeResource === "processos") {
+    return `<div class="table-actions">
+      <button class="btn btn-outline-primary btn-row-edit-processo" type="button" data-id="${escapedId}">Editar</button>
+      <button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapedResource}" data-id="${escapedId}">Excluir</button>
+    </div>`;
+  }
+
+  return `<button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapedResource}" data-id="${escapedId}">Excluir</button>`;
+}
+
 function paintTable(columns, rows) {
   // Só mostramos a coluna "ações" (com botão Excluir) em módulos de entidade.
   const showDeleteAction = ["advogados", "clientes", "escritorios", "processos"].includes(
@@ -242,13 +394,7 @@ function paintTable(columns, rows) {
           .join("")}
         ${
           showDeleteAction
-            ? `<td>${
-                row.id == null
-                  ? "-"
-                  : `<button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapeHtml(
-                      activeResource
-                    )}" data-id="${escapeHtml(String(row.id))}">Excluir</button>`
-              }</td>`
+            ? `<td>${renderRowActions(row)}</td>`
             : ""
         }
       </tr>
@@ -292,7 +438,7 @@ function activateNav(buttonId) {
     dashboardPanel.hidden = !isDashboard;
     filtersPanel.hidden = isDashboard;
     writePanel.hidden = isDashboard;
-    resultsPanel.hidden = false;
+    resultsPanel.hidden = isDashboard;
 
     if (isDashboard) {
       kpiModulo.textContent = "Dashboard";
@@ -302,13 +448,55 @@ function activateNav(buttonId) {
     toggleFilterForms(resource);
     writeResource.value = resource;
     writeResourceLabel.textContent = resourceLabelByKey[resource] || resource;
+    updateWriteFormMode(resource);
     toggleSimpleForms();
+
+    if (resource === "advogados") {
+      void refreshReferenceData(["escritorios", "advogados"]);
+      return;
+    }
+
+    if (resource === "clientes") {
+      void refreshReferenceData(["clientes"]);
+      return;
+    }
+
+    if (resource === "escritorios") {
+      void refreshReferenceData(["escritorios"]);
+      return;
+    }
+
+    if (resource === "processos") {
+      void refreshReferenceData(["escritorios", "advogados", "clientes"]);
+    }
   }
 }
 
 function toNumberOrNull(value) {
   const text = String(value ?? "").trim();
   return text ? Number(text) : null;
+}
+
+function updateWriteFormMode(resource) {
+  const isProcessos = resource === "processos";
+  if (writeMethodField) writeMethodField.hidden = isProcessos;
+  if (writeIdField) writeIdField.hidden = isProcessos;
+
+  if (isProcessos) {
+    writeMethod.value = "criar";
+  }
+  writeMethod.disabled = isProcessos;
+
+  if (isProcessos) {
+    writeId.value = "";
+  }
+  writeId.disabled = isProcessos;
+
+  if (entityHelperText) {
+    entityHelperText.textContent = isProcessos
+      ? "Na secao de Processos o formulario cria novos processos. Para editar, use o botao Editar na tabela."
+      : "Use Criar para novo cadastro e Atualizar para editar um item existente.";
+  }
 }
 
 function toggleSimpleForms() {
@@ -401,7 +589,7 @@ function buildEscritorioPayloadFromSimpleForm() {
 
 function buildProcessoPayloadFromSimpleForm(method) {
   const escritorio_id = toNumberOrNull(proEscritorioId.value);
-  if (method === "PUT" && escritorio_id == null) return null;
+  if (escritorio_id == null) return null;
 
   return {
     escritorio_id,
@@ -420,6 +608,56 @@ function buildPayloadFromSimpleForm(resource, method) {
   if (resource === "escritorios") return buildEscritorioPayloadFromSimpleForm();
   if (resource === "processos") return buildProcessoPayloadFromSimpleForm(method);
   return null;
+}
+
+function findProcessRowById(id) {
+  return lastRenderedRows.find((row) => String(row.id) === String(id));
+}
+
+function fillProcessEditForm(row) {
+  processEditId.value = String(row.id ?? "");
+  processEditEscritorioId.value = row.escritorio_id ?? "";
+  processEditAdvogadoId.value = row.advogado_id ?? "";
+  processEditClienteId.value = row.cliente_id ?? "";
+  processEditNumero.value = row.numero ?? "";
+  processEditTitulo.value = row.titulo ?? "";
+  processEditStatus.value = row.status ?? "";
+  processEditDescricao.value = row.descricao ?? "";
+}
+
+function buildProcessoPayloadFromModal() {
+  const escritorioId = toNumberOrNull(processEditEscritorioId.value);
+  if (escritorioId == null) return null;
+
+  return {
+    escritorio_id: escritorioId,
+    advogado_id: toNumberOrNull(processEditAdvogadoId.value),
+    cliente_id: toNumberOrNull(processEditClienteId.value),
+    numero: processEditNumero.value.trim() || null,
+    titulo: processEditTitulo.value.trim() || null,
+    status: processEditStatus.value.trim() || null,
+    descricao: processEditDescricao.value.trim() || null,
+  };
+}
+
+async function openProcessEditModal(id) {
+  if (!processEditModal) {
+    setStatus("Modal de edicao indisponivel no momento.", "danger");
+    return;
+  }
+
+  const row = findProcessRowById(id);
+  if (!row) {
+    setStatus(`Nao foi possivel localizar os dados do processo ${id} na tabela.`, "danger");
+    return;
+  }
+
+  await refreshReferenceData(["escritorios", "advogados", "clientes"]);
+  fillProcessEditForm(row);
+  ensureSelectHasValue(processEditEscritorioId, row.escritorio_id, "Escritorio");
+  ensureSelectHasValue(processEditAdvogadoId, row.advogado_id, "Advogado");
+  ensureSelectHasValue(processEditClienteId, row.cliente_id, "Cliente");
+  processEditModal.show();
 }
 
 async function fetchWithFallback(endpoint, options = {}) {
@@ -490,7 +728,6 @@ async function fetchCollection(resource) {
 async function loadDashboard() {
   // Carrega os 4 módulos em paralelo para montar os indicadores rapidamente.
   activateNav("btnDashboard");
-  tableTitle.textContent = "Resumo Operacional";
   setStatus("Carregando indicadores operacionais...", "neutral");
 
   try {
@@ -512,14 +749,6 @@ async function loadDashboard() {
       processos.length,
     ]);
 
-    const dashboardRows = [
-      { modulo: "Advogados", total: advogados.length },
-      { modulo: "Clientes", total: clientes.length },
-      { modulo: "Escritorios", total: escritorios.length },
-      { modulo: "Processos", total: processos.length },
-    ];
-
-    renderTable("Resumo Operacional", dashboardRows);
     setStatus(`Dashboard atualizado (${activeApiBase}).`, "success");
   } catch (error) {
     dashAdvogados.textContent = "0";
@@ -527,7 +756,6 @@ async function loadDashboard() {
     dashEscritorios.textContent = "0";
     dashProcessos.textContent = "0";
     updateDashboardChart([0, 0, 0, 0]);
-    renderTable("Resumo Operacional", []);
     setStatus(`Falha ao carregar dashboard: ${error.message}`, "danger");
   }
 }
@@ -549,8 +777,8 @@ function updateDashboardChart(values) {
         {
           label: "Total de Registros",
           data: values,
-          backgroundColor: ["#0d6efd", "#2f80ed", "#111827", "#5b8def"],
-          borderColor: "#0b1220",
+          backgroundColor: ["#2563eb", "#f97316", "#10b981", "#a855f7"],
+          borderColor: ["#1d4ed8", "#c2410c", "#047857", "#7e22ce"],
           borderWidth: 1,
           borderRadius: 8,
         },
@@ -640,6 +868,7 @@ async function submitWriteOperation(event) {
     const resultTitle = `${actionLabel} ${resource}`;
     renderTable(resultTitle, data || { ok: true });
     setStatus(`Operacao concluida: ${actionLabel} ${endpoint}`, "success");
+    await refreshReferenceData(["escritorios", "advogados", "clientes"]);
 
     const listEndpoint = listRouteByResource[resource];
     const navButtonId = navButtonByResource[resource];
@@ -649,8 +878,61 @@ async function submitWriteOperation(event) {
   }
 }
 
+async function submitProcessEdit() {
+  const id = processEditId.value.trim();
+  if (!id) {
+    setStatus("ID do processo invalido para edicao.", "danger");
+    return;
+  }
+
+  const payload = buildProcessoPayloadFromModal();
+  if (!payload) {
+    setStatus("No modal de edicao, informe ao menos o Escritorio ID.", "danger");
+    return;
+  }
+
+  try {
+    btnSaveProcessEdit.disabled = true;
+    setStatus(`Atualizando processo ${id}...`);
+
+    const response = await fetchWithFallback(`/processos/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await parseResponseJson(response);
+    if (!response.ok) {
+      const message = data?.error || `Erro HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
+    if (processEditModal) processEditModal.hide();
+    setStatus(`Processo ${id} atualizado com sucesso.`, "success");
+    await refreshReferenceData(["escritorios", "advogados", "clientes"]);
+    await fetchGet("/processos", "Lista de Processos", "btnProcessos");
+  } catch (error) {
+    setStatus(`Falha ao atualizar processo ${id}: ${error.message}`, "danger");
+  } finally {
+    btnSaveProcessEdit.disabled = false;
+  }
+}
+
 async function handleTableActionClick(event) {
-  // Event delegation: um único listener no <tbody> captura clique nos botões "Excluir".
+  // Event delegation: um único listener no <tbody> captura clique nos botões de ação.
+  const editButton = event.target.closest(".btn-row-edit-processo");
+  if (editButton) {
+    const id = editButton.dataset.id;
+    if (!id) {
+      setStatus("Nao foi possivel identificar o processo para edicao.", "danger");
+      return;
+    }
+    await openProcessEditModal(id);
+    return;
+  }
+
   const deleteButton = event.target.closest(".btn-row-delete");
   if (!deleteButton) return;
 
@@ -681,6 +963,7 @@ async function handleTableActionClick(event) {
     }
 
     setStatus(`Item ${id} excluido com sucesso em ${resourceLabel}.`, "success");
+    await refreshReferenceData(["escritorios", "advogados", "clientes"]);
     await fetchGet(
       listRouteByResource[resource],
       `Lista de ${resourceLabel}`,
@@ -721,6 +1004,24 @@ if (deleteConfirmModalEl) {
       deleteConfirmResolver(false);
       deleteConfirmResolver = null;
     }
+  });
+}
+
+if (btnSaveProcessEdit) {
+  btnSaveProcessEdit.addEventListener("click", submitProcessEdit);
+}
+
+if (formProcessEdit) {
+  formProcessEdit.addEventListener("submit", (event) => {
+    event.preventDefault();
+    submitProcessEdit();
+  });
+}
+
+if (processEditModalEl) {
+  processEditModalEl.addEventListener("hidden.bs.modal", () => {
+    if (formProcessEdit) formProcessEdit.reset();
+    processEditId.value = "";
   });
 }
 
@@ -787,4 +1088,5 @@ btnClearFilter.addEventListener("click", () => {
 
 formWriteOperation.addEventListener("submit", submitWriteOperation);
 tableBody.addEventListener("click", handleTableActionClick);
+void refreshReferenceData(["escritorios", "advogados", "clientes"]);
 loadDashboard();

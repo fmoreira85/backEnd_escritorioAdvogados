@@ -357,6 +357,12 @@ body {
   font-weight: 700;
 }
 
+.table-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .btn-submit-entity {
   justify-self: start;
   min-width: 220px;
@@ -459,6 +465,13 @@ td {
   border: 1px solid color-mix(in srgb, var(--color-primary), white 72%);
   border-radius: 14px;
   padding: 12px;
-  height: 320px;
+  width: 35%;
+  height: 220px;
+}
+
+@media (max-width: 860px) {
+  .dashboard-chart-wrap {
+    width: 100%;
+  }
 }
 

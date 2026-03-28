@@ -96,7 +96,7 @@
               <form id="formAdvogadoNome" class="inline-form">
                 <label for="advogadoNome">Advogado por nome</label>
                 <div class="field-row">
-                <input id="advogadoNome" class="input form-control" name="nome" placeholder="Ex.: Joao Silva" required />
+                <input id="advogadoNome" class="input form-control" name="nome" placeholder="Ex.: Joao Silva" list="advogadosNomesList" required />
                   <button class="btn btn-primary" type="submit">Buscar</button>
                 </div>
               </form>
@@ -107,7 +107,7 @@
               <form id="formClienteNome" class="inline-form">
                 <label for="clienteNome">Cliente por nome</label>
                 <div class="field-row">
-                  <input id="clienteNome" class="input form-control" name="nome" placeholder="Ex.: Maria Souza" required />
+                  <input id="clienteNome" class="input form-control" name="nome" placeholder="Ex.: Maria Souza" list="clientesNomesList" required />
                   <button class="btn btn-primary" type="submit">Buscar</button>
                 </div>
               </form>
@@ -118,7 +118,7 @@
               <form id="formEscritorioEmail" class="inline-form">
                 <label for="escritorioEmail">Escritorio por email</label>
                 <div class="field-row">
-                  <input id="escritorioEmail" class="input form-control" name="email" placeholder="Ex.: contato@alpha.com" required />
+                  <input id="escritorioEmail" class="input form-control" name="email" placeholder="Ex.: contato@alpha.com" list="escritoriosEmailsList" required />
                   <button class="btn btn-primary" type="submit">Buscar</button>
                 </div>
               </form>
@@ -126,11 +126,16 @@
               <form id="formEscritorioTelefone" class="inline-form">
                 <label for="escritorioTelefone">Escritorio por telefone</label>
                 <div class="field-row">
-                  <input id="escritorioTelefone" class="input form-control" name="telefone" placeholder="Ex.: 65999990000" required />
+                  <input id="escritorioTelefone" class="input form-control" name="telefone" placeholder="Ex.: 65999990000" list="escritoriosTelefonesList" required />
                   <button class="btn btn-primary" type="submit">Buscar</button>
                 </div>
               </form>
             </div>
+
+            <datalist id="advogadosNomesList"></datalist>
+            <datalist id="clientesNomesList"></datalist>
+            <datalist id="escritoriosEmailsList"></datalist>
+            <datalist id="escritoriosTelefonesList"></datalist>
 
             <div id="filterSectionProcessos" class="resource-form-section" hidden>
               <p class="section-caption">Secao de Processos</p>
@@ -171,11 +176,11 @@
               <span>Secao ativa para operacao</span>
               <strong id="writeResourceLabel">Advogados</strong>
             </div>
-            <p class="field-block field-block-full entity-helper">
+            <p id="entityHelperText" class="field-block field-block-full entity-helper">
               Use Criar para novo cadastro e Atualizar para editar um item existente.
             </p>
 
-            <label class="field-block" for="writeMethod">
+            <label id="writeMethodField" class="field-block" for="writeMethod">
               Acao
               <select id="writeMethod" class="input form-select" name="method">
                 <option value="criar">Criar</option>
@@ -183,7 +188,7 @@
               </select>
             </label>
 
-            <label class="field-block" for="writeId">
+            <label id="writeIdField" class="field-block" for="writeId">
               ID (obrigatorio em Atualizar)
               <input id="writeId" class="input form-control" name="id" placeholder="Ex.: 1" />
             </label>
@@ -191,7 +196,9 @@
             <div id="simpleAdvogados" class="field-block field-block-full simple-box" aria-label="Formulario simples de advogado">
               <strong class="entity-title">Formulario de Advogados</strong>
               <div class="simple-grid">
-                <input id="advEscritorioId" class="input form-control" placeholder="Escritorio ID *" />
+                <select id="advEscritorioId" class="input form-select">
+                  <option value="">Selecione um escritorio *</option>
+                </select>
                 <input id="advNome" class="input form-control" placeholder="Nome *" />
                 <input id="advOab" class="input form-control" placeholder="OAB *" />
                 <input id="advEspecialidade" class="input form-control" placeholder="Especialidade" />
@@ -235,9 +242,15 @@
             <div id="simpleProcessos" class="field-block field-block-full simple-box" aria-label="Formulario simples de processo" hidden>
               <strong class="entity-title">Formulario de Processos</strong>
               <div class="simple-grid">
-                <input id="proEscritorioId" class="input form-control" placeholder="Escritorio ID (obrigatorio em Atualizar)" />
-                <input id="proAdvogadoId" class="input form-control" placeholder="Advogado ID" />
-                <input id="proClienteId" class="input form-control" placeholder="Cliente ID" />
+                <select id="proEscritorioId" class="input form-select">
+                  <option value="">Selecione um escritorio *</option>
+                </select>
+                <select id="proAdvogadoId" class="input form-select">
+                  <option value="">Selecione um advogado</option>
+                </select>
+                <select id="proClienteId" class="input form-select">
+                  <option value="">Selecione um cliente</option>
+                </select>
                 <input id="proNumero" class="input form-control" placeholder="Numero" />
                 <input id="proTitulo" class="input form-control" placeholder="Titulo" />
                 <input id="proStatus" class="input form-control" placeholder="Status" />
@@ -280,6 +293,66 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
             <button type="button" class="btn btn-danger" id="btnConfirmDelete">Excluir item</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="processEditModal"
+      tabindex="-1"
+      aria-labelledby="processEditModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="processEditModalLabel">Editar processo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formProcessEdit" class="write-grid">
+              <input id="processEditId" type="hidden" />
+              <label class="field-block" for="processEditEscritorioId">
+                Escritorio ID *
+                <select id="processEditEscritorioId" class="input form-select" required>
+                  <option value="">Selecione um escritorio *</option>
+                </select>
+              </label>
+              <label class="field-block" for="processEditAdvogadoId">
+                Advogado ID
+                <select id="processEditAdvogadoId" class="input form-select">
+                  <option value="">Selecione um advogado</option>
+                </select>
+              </label>
+              <label class="field-block" for="processEditClienteId">
+                Cliente ID
+                <select id="processEditClienteId" class="input form-select">
+                  <option value="">Selecione um cliente</option>
+                </select>
+              </label>
+              <label class="field-block" for="processEditNumero">
+                Numero
+                <input id="processEditNumero" class="input form-control" />
+              </label>
+              <label class="field-block" for="processEditTitulo">
+                Titulo
+                <input id="processEditTitulo" class="input form-control" />
+              </label>
+              <label class="field-block" for="processEditStatus">
+                Status
+                <input id="processEditStatus" class="input form-control" />
+              </label>
+              <label class="field-block field-block-full" for="processEditDescricao">
+                Descricao
+                <input id="processEditDescricao" class="input form-control" />
+              </label>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnSaveProcessEdit">Salvar alteracoes</button>
           </div>
         </div>
       </div>
