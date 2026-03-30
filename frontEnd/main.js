@@ -1,15 +1,22 @@
-function buildApiBaseCandidates() {
-  // Monta uma lista de URLs possíveis da API para facilitar quando mudar de ambiente
-  // (localhost, 127.0.0.1, etc.) sem precisar alterar o código toda hora.
-  const configured = window.localStorage.getItem("API_BASE_URL");
-  const defaults = ["http://localhost:3000", "http://127.0.0.1:3000"];
+import {
+  CONFIG,
+  actionLabelByHttpMethod,
+  actionToHttpMethod,
+  buildApiBaseCandidates,
+  createRouteByResource,
+  listRouteByResource,
+  navButtonByResource,
+  resourceByNavButton,
+  resourceLabelByKey,
+} from "./src/scripts/app-config.js";
 
-  if (window.location.protocol !== "file:") {
-    defaults.unshift(`${window.location.protocol}//${window.location.hostname}:3000`);
-  }
-
-  return [...new Set([configured, ...defaults].filter(Boolean))];
-}
+const FRONTEND_CONSTANTS = {
+  ACTIVE_FLAG_DEFAULT: 1,
+  STATUS_SORT_FALLBACK_ORDER: 99,
+  PERCENT_SCALE: 100,
+  HTTP_NOT_FOUND: 404,
+  HTTP_METHOD_NOT_ALLOWED: 405,
+};
 
 const API_BASE_CANDIDATES = buildApiBaseCandidates();
 let activeApiBase = API_BASE_CANDIDATES[0];
@@ -33,6 +40,8 @@ const dashClientes = document.getElementById("dashClientes");
 const dashEscritorios = document.getElementById("dashEscritorios");
 const dashProcessos = document.getElementById("dashProcessos");
 const dashboardChartCanvas = document.getElementById("dashboardChart");
+const dashboardStatusCharts = document.getElementById("dashboardStatusCharts");
+const btnDashboardStatusClear = document.getElementById("btnDashboardStatusClear");
 const formAdvogadoNome = document.getElementById("formAdvogadoNome");
 const formClienteNome = document.getElementById("formClienteNome");
 const formEscritorioEmail = document.getElementById("formEscritorioEmail");
@@ -104,6 +113,38 @@ const processEditTitulo = document.getElementById("processEditTitulo");
 const processEditStatus = document.getElementById("processEditStatus");
 const processEditDescricao = document.getElementById("processEditDescricao");
 const btnSaveProcessEdit = document.getElementById("btnSaveProcessEdit");
+const entityEditModalEl = document.getElementById("entityEditModal");
+const entityEditModalLabel = document.getElementById("entityEditModalLabel");
+const formEntityEdit = document.getElementById("formEntityEdit");
+const entityEditResource = document.getElementById("entityEditResource");
+const entityEditId = document.getElementById("entityEditId");
+const entityEditAdvogados = document.getElementById("entityEditAdvogados");
+const entityEditClientes = document.getElementById("entityEditClientes");
+const entityEditEscritorios = document.getElementById("entityEditEscritorios");
+const editAdvEscritorioId = document.getElementById("editAdvEscritorioId");
+const editAdvNome = document.getElementById("editAdvNome");
+const editAdvOab = document.getElementById("editAdvOab");
+const editAdvEspecialidade = document.getElementById("editAdvEspecialidade");
+const editAdvEmail = document.getElementById("editAdvEmail");
+const editAdvTelefone = document.getElementById("editAdvTelefone");
+const editAdvAtivo = document.getElementById("editAdvAtivo");
+const editCliNome = document.getElementById("editCliNome");
+const editCliDocumento = document.getElementById("editCliDocumento");
+const editCliEmail = document.getElementById("editCliEmail");
+const editCliTelefone = document.getElementById("editCliTelefone");
+const editCliEndereco = document.getElementById("editCliEndereco");
+const editCliCidade = document.getElementById("editCliCidade");
+const editCliEstado = document.getElementById("editCliEstado");
+const editCliCep = document.getElementById("editCliCep");
+const editEscNome = document.getElementById("editEscNome");
+const editEscCnpj = document.getElementById("editEscCnpj");
+const editEscEmail = document.getElementById("editEscEmail");
+const editEscTelefone = document.getElementById("editEscTelefone");
+const editEscEndereco = document.getElementById("editEscEndereco");
+const editEscCidade = document.getElementById("editEscCidade");
+const editEscEstado = document.getElementById("editEscEstado");
+const editEscCep = document.getElementById("editEscCep");
+const btnSaveEntityEdit = document.getElementById("btnSaveEntityEdit");
 
 const deleteConfirmModal =
   deleteConfirmModalEl && window.bootstrap
@@ -111,42 +152,19 @@ const deleteConfirmModal =
     : null;
 const processEditModal =
   processEditModalEl && window.bootstrap ? new window.bootstrap.Modal(processEditModalEl) : null;
+const entityEditModal =
+  entityEditModalEl && window.bootstrap ? new window.bootstrap.Modal(entityEditModalEl) : null;
 // Resolver da Promise usada para esperar a resposta do usuário no modal de exclusão.
 let deleteConfirmResolver = null;
 let dashboardChart = null;
+let dashboardStatusChartsInstances = [];
+let dashboardProcessRows = [];
+let dashboardSelectedStatus = "";
+let processRowBeingEdited = null;
 const referenceData = {
   escritorios: [],
   advogados: [],
   clientes: [],
-};
-
-const createRouteByResource = {
-  advogados: "/criar-advogado",
-  clientes: "/criar-cliente",
-  escritorios: "/criar-escritorio",
-  processos: "/criar-processo",
-};
-
-const listRouteByResource = {
-  advogados: "/advogados",
-  clientes: "/clientes",
-  escritorios: "/escritorios",
-  processos: "/processos",
-};
-
-const navButtonByResource = {
-  advogados: "btnAdvogados",
-  clientes: "btnClientes",
-  escritorios: "btnEscritorios",
-  processos: "btnProcessos",
-};
-
-const resourceByNavButton = {
-  btnDashboard: "dashboard",
-  btnAdvogados: "advogados",
-  btnClientes: "clientes",
-  btnEscritorios: "escritorios",
-  btnProcessos: "processos",
 };
 
 const filterFormsByResource = {
@@ -163,31 +181,6 @@ const filterSectionsByResource = {
   escritorios: filterSectionEscritorios,
   processos: filterSectionProcessos,
 };
-const resourceLabelByKey = {
-  dashboard: "Dashboard",
-  advogados: "Advogados",
-  clientes: "Clientes",
-  escritorios: "Escritorios",
-  processos: "Processos",
-};
-
-const actionToHttpMethod = {
-  criar: "POST",
-  atualizar: "PUT",
-  POST: "POST",
-  PUT: "PUT",
-  DELETE: "DELETE",
-  post: "POST",
-  put: "PUT",
-  delete: "DELETE",
-};
-
-const actionLabelByHttpMethod = {
-  POST: "Criar",
-  PUT: "Atualizar",
-  DELETE: "Apagar",
-};
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -281,9 +274,28 @@ function ensureSelectHasValue(selectElement, value, prefix) {
   selectElement.value = valueText;
 }
 
+function ensureSelectHasPlainValue(selectElement, value) {
+  if (!selectElement || value == null || value === "") return;
+  const valueText = String(value);
+  const exists = [...selectElement.options].some((option) => option.value === valueText);
+  if (!exists) {
+    const option = document.createElement("option");
+    option.value = valueText;
+    option.textContent = valueText;
+    selectElement.appendChild(option);
+  }
+  selectElement.value = valueText;
+}
+
 function syncReferenceInputs() {
   setSelectOptions(
     advEscritorioId,
+    referenceData.escritorios,
+    "Selecione um escritorio *",
+    "Escritorio"
+  );
+  setSelectOptions(
+    editAdvEscritorioId,
     referenceData.escritorios,
     "Selecione um escritorio *",
     "Escritorio"
@@ -333,13 +345,13 @@ function syncReferenceInputs() {
   );
 }
 
-async function refreshReferenceData(resources = ["escritorios", "advogados", "clientes"]) {
-  const tasks = resources.map(async (resource) => {
+async function refreshReferenceData(resourceKeys = ["escritorios", "advogados", "clientes"]) {
+  const tasks = resourceKeys.map(async (resourceKey) => {
     try {
-      const rows = await fetchCollection(resource);
-      referenceData[resource] = rows;
+      const collectionRows = await fetchCollection(resourceKey);
+      referenceData[resourceKey] = collectionRows;
     } catch (_error) {
-      referenceData[resource] = [];
+      referenceData[resourceKey] = [];
     }
   });
 
@@ -352,15 +364,18 @@ function renderRowActions(row) {
 
   const escapedResource = escapeHtml(activeResource);
   const escapedId = escapeHtml(String(row.id));
+  const isEntityModule = ["advogados", "clientes", "escritorios", "processos"].includes(
+    activeResource
+  );
+  if (!isEntityModule) return "-";
 
-  if (activeResource === "processos") {
-    return `<div class="table-actions">
-      <button class="btn btn-outline-primary btn-row-edit-processo" type="button" data-id="${escapedId}">Editar</button>
-      <button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapedResource}" data-id="${escapedId}">Excluir</button>
-    </div>`;
-  }
+  const actionClass =
+    activeResource === "processos" ? "table-actions table-actions-processos" : "table-actions";
 
-  return `<button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapedResource}" data-id="${escapedId}">Excluir</button>`;
+  return `<div class="${actionClass}">
+    <button class="btn btn-outline-primary btn-row-edit-entity" type="button" data-resource="${escapedResource}" data-id="${escapedId}">Editar</button>
+    <button class="btn btn-danger btn-row-delete" type="button" data-resource="${escapedResource}" data-id="${escapedId}">Excluir</button>
+  </div>`;
 }
 
 function paintTable(columns, rows) {
@@ -409,67 +424,76 @@ function refreshFilteredTable() {
   kpiRows.textContent = String(filtered.length);
 }
 
-function renderTable(title, payload) {
-  // "payload" pode vir como objeto único ou array; aqui normalizamos para array.
-  const rows = normalizeRows(payload);
-  const columns = [...new Set(rows.flatMap((row) => Object.keys(row)))];
+function renderTable(title, responsePayload) {
+  // "responsePayload" pode vir como objeto único ou array; aqui normalizamos para array.
+  const records = normalizeRows(responsePayload);
+  const columns = [...new Set(records.flatMap((record) => Object.keys(record)))];
 
   tableTitle.textContent = title;
 
-  lastRenderedRows = rows;
+  lastRenderedRows = records;
   lastRenderedColumns = columns;
   refreshFilteredTable();
 }
 
-function activateNav(buttonId) {
-  // Marca visualmente o botão ativo na sidebar.
+function setActiveNavButton(buttonId) {
   navButtons.forEach((button) => {
     button.classList.toggle("is-active", button.id === buttonId);
   });
+}
 
+function getResourceByButtonId(buttonId) {
+  return resourceByNavButton[buttonId] || null;
+}
+
+function updateActiveModuleLabel(buttonId) {
   const activeName = document.getElementById(buttonId)?.textContent?.trim() || "-";
   kpiModulo.textContent = activeName;
+}
 
-  const resource = resourceByNavButton[buttonId];
-  if (resource) {
-    activeResource = resource;
-    // Dashboard mostra painel de métricas; entidades mostram filtros + formulário.
-    const isDashboard = resource === "dashboard";
-    dashboardPanel.hidden = !isDashboard;
-    filtersPanel.hidden = isDashboard;
-    writePanel.hidden = isDashboard;
-    resultsPanel.hidden = isDashboard;
+function applyScreenLayoutByResource(resourceKey) {
+  const isDashboard = resourceKey === "dashboard";
+  dashboardPanel.hidden = !isDashboard;
+  filtersPanel.hidden = isDashboard;
+  writePanel.hidden = isDashboard;
+  resultsPanel.hidden = isDashboard;
+  if (isDashboard) kpiModulo.textContent = "Dashboard";
+}
 
-    if (isDashboard) {
-      kpiModulo.textContent = "Dashboard";
-      return;
-    }
+function syncWriteSectionForResource(resourceKey) {
+  toggleFilterForms(resourceKey);
+  writeResource.value = resourceKey;
+  writeResourceLabel.textContent = resourceLabelByKey[resourceKey] || resourceKey;
+  updateWriteFormMode(resourceKey);
+  toggleSimpleForms();
+}
 
-    toggleFilterForms(resource);
-    writeResource.value = resource;
-    writeResourceLabel.textContent = resourceLabelByKey[resource] || resource;
-    updateWriteFormMode(resource);
-    toggleSimpleForms();
+function refreshReferenceDataForResource(resourceKey) {
+  const referenceResourcesByModule = {
+    advogados: ["escritorios", "advogados"],
+    clientes: ["clientes"],
+    escritorios: ["escritorios"],
+    processos: ["escritorios", "advogados", "clientes"],
+  };
+  const referenceKeys = referenceResourcesByModule[resourceKey];
+  if (!referenceKeys) return;
+  void refreshReferenceData(referenceKeys);
+}
 
-    if (resource === "advogados") {
-      void refreshReferenceData(["escritorios", "advogados"]);
-      return;
-    }
+function activateNav(buttonId) {
+  // Orquestra navegação; regras de layout e dados ficam em funções específicas.
+  setActiveNavButton(buttonId);
+  updateActiveModuleLabel(buttonId);
 
-    if (resource === "clientes") {
-      void refreshReferenceData(["clientes"]);
-      return;
-    }
+  const resourceKey = getResourceByButtonId(buttonId);
+  if (!resourceKey) return;
 
-    if (resource === "escritorios") {
-      void refreshReferenceData(["escritorios"]);
-      return;
-    }
+  activeResource = resourceKey;
+  applyScreenLayoutByResource(resourceKey);
+  if (resourceKey === "dashboard") return;
 
-    if (resource === "processos") {
-      void refreshReferenceData(["escritorios", "advogados", "clientes"]);
-    }
-  }
+  syncWriteSectionForResource(resourceKey);
+  refreshReferenceDataForResource(resourceKey);
 }
 
 function toNumberOrNull(value) {
@@ -478,24 +502,17 @@ function toNumberOrNull(value) {
 }
 
 function updateWriteFormMode(resource) {
-  const isProcessos = resource === "processos";
-  if (writeMethodField) writeMethodField.hidden = isProcessos;
-  if (writeIdField) writeIdField.hidden = isProcessos;
-
-  if (isProcessos) {
-    writeMethod.value = "criar";
-  }
-  writeMethod.disabled = isProcessos;
-
-  if (isProcessos) {
-    writeId.value = "";
-  }
-  writeId.disabled = isProcessos;
+  const isEntity = ["advogados", "clientes", "escritorios", "processos"].includes(resource);
+  if (writeMethodField) writeMethodField.hidden = isEntity;
+  if (writeIdField) writeIdField.hidden = isEntity;
+  if (isEntity) writeMethod.value = "criar";
+  writeMethod.disabled = isEntity;
+  if (isEntity) writeId.value = "";
+  writeId.disabled = isEntity;
 
   if (entityHelperText) {
-    entityHelperText.textContent = isProcessos
-      ? "Na secao de Processos o formulario cria novos processos. Para editar, use o botao Editar na tabela."
-      : "Use Criar para novo cadastro e Atualizar para editar um item existente.";
+    entityHelperText.textContent =
+      "Este formulario e apenas para criar novos registros. Para editar, use o botao Editar na tabela.";
   }
 }
 
@@ -597,7 +614,7 @@ function buildProcessoPayloadFromSimpleForm(method) {
     cliente_id: toNumberOrNull(proClienteId.value),
     numero: proNumero.value.trim() || null,
     titulo: proTitulo.value.trim() || null,
-    status: proStatus.value.trim() || null,
+    status: toProcessStatusApiValue(proStatus.value),
     descricao: proDescricao.value.trim() || null,
   };
 }
@@ -621,22 +638,30 @@ function fillProcessEditForm(row) {
   processEditClienteId.value = row.cliente_id ?? "";
   processEditNumero.value = row.numero ?? "";
   processEditTitulo.value = row.titulo ?? "";
-  processEditStatus.value = row.status ?? "";
+  ensureSelectHasPlainValue(processEditStatus, row.status);
   processEditDescricao.value = row.descricao ?? "";
 }
 
 function buildProcessoPayloadFromModal() {
-  const escritorioId = toNumberOrNull(processEditEscritorioId.value);
+  const escritorioId =
+    toNumberOrNull(processEditEscritorioId.value) ??
+    toNumberOrNull(processRowBeingEdited?.escritorio_id);
   if (escritorioId == null) return null;
 
   return {
     escritorio_id: escritorioId,
-    advogado_id: toNumberOrNull(processEditAdvogadoId.value),
-    cliente_id: toNumberOrNull(processEditClienteId.value),
-    numero: processEditNumero.value.trim() || null,
-    titulo: processEditTitulo.value.trim() || null,
-    status: processEditStatus.value.trim() || null,
-    descricao: processEditDescricao.value.trim() || null,
+    advogado_id:
+      toNumberOrNull(processEditAdvogadoId.value) ??
+      toNumberOrNull(processRowBeingEdited?.advogado_id),
+    cliente_id:
+      toNumberOrNull(processEditClienteId.value) ??
+      toNumberOrNull(processRowBeingEdited?.cliente_id),
+    numero: processEditNumero.value.trim() || processRowBeingEdited?.numero || null,
+    titulo: processEditTitulo.value.trim() || processRowBeingEdited?.titulo || null,
+    status: toProcessStatusApiValue(
+      processEditStatus.value || processRowBeingEdited?.status || "aberto"
+    ),
+    descricao: processEditDescricao.value.trim() || processRowBeingEdited?.descricao || null,
   };
 }
 
@@ -652,6 +677,7 @@ async function openProcessEditModal(id) {
     return;
   }
 
+  processRowBeingEdited = row;
   await refreshReferenceData(["escritorios", "advogados", "clientes"]);
   fillProcessEditForm(row);
   ensureSelectHasValue(processEditEscritorioId, row.escritorio_id, "Escritorio");
@@ -660,75 +686,227 @@ async function openProcessEditModal(id) {
   processEditModal.show();
 }
 
+function findEntityRowById(id) {
+  return lastRenderedRows.find((row) => String(row.id) === String(id));
+}
+
+function toggleEntityEditSections(resource) {
+  entityEditAdvogados.hidden = resource !== "advogados";
+  entityEditClientes.hidden = resource !== "clientes";
+  entityEditEscritorios.hidden = resource !== "escritorios";
+}
+
+function fillAdvogadoEditForm(row) {
+  editAdvEscritorioId.value = row.escritorio_id ?? "";
+  ensureSelectHasValue(editAdvEscritorioId, row.escritorio_id, "Escritorio");
+  editAdvNome.value = row.nome ?? "";
+  editAdvOab.value = row.oab ?? "";
+  editAdvEspecialidade.value = row.especialidade ?? "";
+  editAdvEmail.value = row.email ?? "";
+  editAdvTelefone.value = row.telefone ?? "";
+  editAdvAtivo.value = String(row.ativo ?? FRONTEND_CONSTANTS.ACTIVE_FLAG_DEFAULT);
+}
+
+function fillClienteEditForm(row) {
+  editCliNome.value = row.nome ?? "";
+  editCliDocumento.value = row.documento ?? "";
+  editCliEmail.value = row.email ?? "";
+  editCliTelefone.value = row.telefone ?? "";
+  editCliEndereco.value = row.endereco ?? "";
+  editCliCidade.value = row.cidade ?? "";
+  editCliEstado.value = row.estado ?? "";
+  editCliCep.value = row.cep ?? "";
+}
+
+function fillEscritorioEditForm(row) {
+  editEscNome.value = row.nome ?? "";
+  editEscCnpj.value = row.cnpj ?? "";
+  editEscEmail.value = row.email ?? "";
+  editEscTelefone.value = row.telefone ?? "";
+  editEscEndereco.value = row.endereco ?? "";
+  editEscCidade.value = row.cidade ?? "";
+  editEscEstado.value = row.estado ?? "";
+  editEscCep.value = row.cep ?? "";
+}
+
+async function openEntityEditModal(resource, id) {
+  if (!entityEditModal) {
+    setStatus("Modal de edicao indisponivel no momento.", "danger");
+    return;
+  }
+
+  const row = findEntityRowById(id);
+  if (!row) {
+    setStatus(`Nao foi possivel localizar os dados do item ${id} para edicao.`, "danger");
+    return;
+  }
+
+  if (resource === "advogados") {
+    await refreshReferenceData(["escritorios"]);
+    fillAdvogadoEditForm(row);
+  } else if (resource === "clientes") {
+    fillClienteEditForm(row);
+  } else if (resource === "escritorios") {
+    fillEscritorioEditForm(row);
+  } else {
+    setStatus("Tipo de recurso nao suportado para este modal de edicao.", "danger");
+    return;
+  }
+
+  entityEditResource.value = resource;
+  entityEditId.value = String(id);
+  toggleEntityEditSections(resource);
+  if (entityEditModalLabel) {
+    const label = resourceLabelByKey[resource] || resource;
+    entityEditModalLabel.textContent = `Editar ${label.slice(0, -1) || label}`;
+  }
+  entityEditModal.show();
+}
+
+function buildAdvogadoPayloadFromEditModal() {
+  const escritorioId = toNumberOrNull(editAdvEscritorioId.value);
+  const nome = editAdvNome.value.trim();
+  const oab = editAdvOab.value.trim();
+  if (escritorioId == null || !nome || !oab) return null;
+
+  return {
+    escritorio_id: escritorioId,
+    nome,
+    oab,
+    especialidade: editAdvEspecialidade.value.trim() || null,
+    email: editAdvEmail.value.trim() || null,
+    telefone: editAdvTelefone.value.trim() || null,
+    ativo: Number(editAdvAtivo.value || FRONTEND_CONSTANTS.ACTIVE_FLAG_DEFAULT),
+  };
+}
+
+function buildClientePayloadFromEditModal() {
+  const nome = editCliNome.value.trim();
+  if (!nome) return null;
+
+  return {
+    nome,
+    documento: editCliDocumento.value.trim() || null,
+    email: editCliEmail.value.trim() || null,
+    telefone: editCliTelefone.value.trim() || null,
+    endereco: editCliEndereco.value.trim() || null,
+    cidade: editCliCidade.value.trim() || null,
+    estado: editCliEstado.value.trim() || null,
+    cep: editCliCep.value.trim() || null,
+  };
+}
+
+function buildEscritorioPayloadFromEditModal() {
+  const nome = editEscNome.value.trim();
+  const cnpj = editEscCnpj.value.trim();
+  if (!nome || !cnpj) return null;
+
+  return {
+    nome,
+    cnpj,
+    email: editEscEmail.value.trim() || null,
+    telefone: editEscTelefone.value.trim() || null,
+    endereco: editEscEndereco.value.trim() || null,
+    cidade: editEscCidade.value.trim() || null,
+    estado: editEscEstado.value.trim() || null,
+    cep: editEscCep.value.trim() || null,
+  };
+}
+
+function buildEntityEditPayload(resource) {
+  if (resource === "advogados") return buildAdvogadoPayloadFromEditModal();
+  if (resource === "clientes") return buildClientePayloadFromEditModal();
+  if (resource === "escritorios") return buildEscritorioPayloadFromEditModal();
+  return null;
+}
+
 async function fetchWithFallback(endpoint, options = {}) {
   // Tenta cada URL candidata da API até encontrar uma que responda.
-  let lastError = null;
+  let lastFetchError = null;
+  const authToken = window.localStorage.getItem("AUTH_TOKEN");
+  const mergedHeaders = {
+    ...(options.headers || {}),
+  };
+  if (authToken && !mergedHeaders.Authorization) {
+    mergedHeaders.Authorization = `Bearer ${authToken}`;
+  }
+  const requestOptions = {
+    ...options,
+    headers: mergedHeaders,
+  };
 
   for (const base of API_BASE_CANDIDATES) {
     try {
-      const response = await fetch(`${base}${endpoint}`, options);
+      const apiResponse = await fetch(`${base}${endpoint}`, requestOptions);
       activeApiBase = base;
-      return response;
+      return apiResponse;
     } catch (error) {
-      lastError = error;
+      lastFetchError = error;
     }
   }
 
   throw (
-    lastError ||
+    lastFetchError ||
     new Error(`Nao foi possivel conectar com a API (${API_BASE_CANDIDATES.join(", ")})`)
   );
 }
 
-async function parseResponseJson(response) {
-  const contentType = response.headers.get("content-type") || "";
+async function parseResponseJson(apiResponse) {
+  const contentType = apiResponse.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) return null;
-  return response.json();
+  try {
+    return await apiResponse.json();
+  } catch (_error) {
+    return null;
+  }
 }
 
-async function fetchGet(endpoint, title, buttonId = "") {
+async function fetchGet(endpoint, title, navButtonId = "") {
   // Fluxo padrão para consultas GET e renderização da tabela.
   try {
     setStatus(`Consultando ${endpoint} em ${activeApiBase}...`);
-    if (buttonId) activateNav(buttonId);
+    if (navButtonId) activateNav(navButtonId);
 
-    const response = await fetchWithFallback(endpoint);
-    const data = await response.json();
+    const apiResponse = await fetchWithFallback(endpoint);
+    const responsePayload = await parseResponseJson(apiResponse);
 
-    if (!response.ok) {
-      const message = data?.error || `Erro HTTP ${response.status}`;
+    if (!apiResponse.ok) {
+      const message = responsePayload?.error || `Erro HTTP ${apiResponse.status}`;
       throw new Error(message);
     }
 
-    renderTable(title, data);
+    renderTable(title, responsePayload || []);
     setStatus(`Consulta concluida: ${endpoint} (${activeApiBase})`, "success");
   } catch (error) {
     renderTable(title, []);
 
     const guidance =
       error.message === "Failed to fetch"
-        ? "Falha de conexao com a API. Confirme se o backend esta rodando na porta 3000."
+        ? `Falha de conexao com a API. Confirme se o backend esta rodando na porta ${CONFIG.API_PORT}.`
+        : error.message.includes("401") || error.message.includes("403")
+          ? "Acesso negado. Defina AUTH_TOKEN no localStorage apos login em /auth/login."
         : error.message;
 
     setStatus(`Falha: ${guidance}`, "danger");
   }
 }
 
-async function fetchCollection(resource) {
+async function fetchCollection(resourceKey) {
   // Helper para buscar coleção completa de uma entidade (usado no dashboard).
-  const response = await fetchWithFallback(listRouteByResource[resource]);
-  const data = await parseResponseJson(response);
-  if (!response.ok) {
-    const message = data?.error || `Erro HTTP ${response.status}`;
+  const apiResponse = await fetchWithFallback(listRouteByResource[resourceKey]);
+  const collectionPayload = await parseResponseJson(apiResponse);
+  if (!apiResponse.ok) {
+    const message = collectionPayload?.error || `Erro HTTP ${apiResponse.status}`;
     throw new Error(message);
   }
-  return Array.isArray(data) ? data : [];
+  return Array.isArray(collectionPayload) ? collectionPayload : [];
 }
 
 async function loadDashboard() {
   // Carrega os 4 módulos em paralelo para montar os indicadores rapidamente.
   activateNav("btnDashboard");
   setStatus("Carregando indicadores operacionais...", "neutral");
+  renderDashboardStatusSkeleton();
 
   try {
     const [advogados, clientes, escritorios, processos] = await Promise.all([
@@ -742,12 +920,14 @@ async function loadDashboard() {
     dashClientes.textContent = String(clientes.length);
     dashEscritorios.textContent = String(escritorios.length);
     dashProcessos.textContent = String(processos.length);
+    dashboardProcessRows = processos;
     updateDashboardChart([
       advogados.length,
       clientes.length,
       escritorios.length,
       processos.length,
     ]);
+    updateProcessStatusCharts(processos);
 
     setStatus(`Dashboard atualizado (${activeApiBase}).`, "success");
   } catch (error) {
@@ -755,7 +935,9 @@ async function loadDashboard() {
     dashClientes.textContent = "0";
     dashEscritorios.textContent = "0";
     dashProcessos.textContent = "0";
+    dashboardProcessRows = [];
     updateDashboardChart([0, 0, 0, 0]);
+    updateProcessStatusCharts([]);
     setStatus(`Falha ao carregar dashboard: ${error.message}`, "danger");
   }
 }
@@ -777,10 +959,10 @@ function updateDashboardChart(values) {
         {
           label: "Total de Registros",
           data: values,
-          backgroundColor: ["#2563eb", "#f97316", "#10b981", "#a855f7"],
-          borderColor: ["#1d4ed8", "#c2410c", "#047857", "#7e22ce"],
-          borderWidth: 1,
-          borderRadius: 8,
+          backgroundColor: CONFIG.DASHBOARD_TOTAL_BACKGROUND_COLORS,
+          borderColor: CONFIG.DASHBOARD_TOTAL_BORDER_COLORS,
+          borderWidth: CONFIG.CHART_BORDER_WIDTH,
+          borderRadius: CONFIG.CHART_BORDER_RADIUS,
         },
       ],
     },
@@ -797,7 +979,7 @@ function updateDashboardChart(values) {
           beginAtZero: true,
           ticks: {
             precision: 0,
-            stepSize: 1,
+            stepSize: CONFIG.CHART_STEP_SIZE,
           },
         },
       },
@@ -805,175 +987,473 @@ function updateDashboardChart(values) {
   });
 }
 
+function normalizeProcessStatus(value) {
+  const statusRaw = String(value ?? "").trim().toLowerCase();
+  if (!statusRaw) return "Sem status";
+  return CONFIG.STATUS_LABEL_BY_API[statusRaw] || String(value).trim();
+}
+
+function toProcessStatusApiValue(value) {
+  const statusRaw = String(value ?? "").trim();
+  if (!statusRaw) return "aberto";
+  const statusFromLabel = CONFIG.STATUS_API_BY_LABEL[statusRaw];
+  if (statusFromLabel) return statusFromLabel;
+  const normalizedRaw = statusRaw.toLowerCase();
+  if (CONFIG.STATUS_LABEL_BY_API[normalizedRaw]) {
+    return normalizedRaw === "em andamento" ? "andamento" : normalizedRaw;
+  }
+  return "aberto";
+}
+
+function getFilterTermForStatusLabel(label) {
+  return CONFIG.STATUS_API_BY_LABEL[label] || label;
+}
+
+function getStatusColor(label) {
+  return CONFIG.STATUS_COLOR_BY_LABEL[label] || CONFIG.CHART_FALLBACK_COLOR;
+}
+
+function destroyDashboardStatusCharts() {
+  dashboardStatusChartsInstances.forEach((instance) => instance.destroy());
+  dashboardStatusChartsInstances = [];
+}
+
+function renderDashboardStatusSkeleton() {
+  if (!dashboardStatusCharts) return;
+  destroyDashboardStatusCharts();
+  dashboardStatusCharts.innerHTML = new Array(CONFIG.DASHBOARD_STATUS_SKELETON_COUNT)
+    .fill('<div class="status-chart-skeleton" aria-hidden="true"></div>')
+    .join("");
+}
+
+async function openProcessListByStatus(status) {
+  dashboardSelectedStatus = status;
+  tableFilter.value = getFilterTermForStatusLabel(status);
+  await fetchGet("/processos", "Lista de Processos", "btnProcessos");
+  setStatus(`Processos filtrados por status: ${status}.`, "success");
+}
+
+async function openAllProcessesFromDashboard() {
+  dashboardSelectedStatus = "";
+  tableFilter.value = "";
+  await fetchGet("/processos", "Lista de Processos", "btnProcessos");
+}
+
+function buildProcessStatusCounts(processRows) {
+  const statusCountMap = new Map();
+  processRows.forEach((processRow) => {
+    const statusLabel = normalizeProcessStatus(processRow.status);
+    statusCountMap.set(statusLabel, (statusCountMap.get(statusLabel) || 0) + 1);
+  });
+  return statusCountMap;
+}
+
+function sortStatusLabels(statusCountMap) {
+  return [...statusCountMap.keys()].sort((leftLabel, rightLabel) => {
+    const leftIndex = CONFIG.STATUS_ORDER.indexOf(leftLabel);
+    const rightIndex = CONFIG.STATUS_ORDER.indexOf(rightLabel);
+    const leftOrder =
+      leftIndex === -1 ? FRONTEND_CONSTANTS.STATUS_SORT_FALLBACK_ORDER : leftIndex;
+    const rightOrder =
+      rightIndex === -1 ? FRONTEND_CONSTANTS.STATUS_SORT_FALLBACK_ORDER : rightIndex;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return leftLabel.localeCompare(rightLabel, "pt-BR");
+  });
+}
+
+function buildProcessStatusCardHtml(statusLabel, statusCount, totalProcesses, chartIndex) {
+  const statusPercent = Math.round(
+    (statusCount / totalProcesses) * FRONTEND_CONSTANTS.PERCENT_SCALE
+  );
+  const isSelected = dashboardSelectedStatus === statusLabel;
+  return `
+      <article class="status-chart-card">
+        <button
+          type="button"
+          class="status-chart-button ${isSelected ? "is-selected" : ""}"
+          data-status="${escapeHtml(statusLabel)}"
+          aria-pressed="${isSelected ? "true" : "false"}"
+          aria-label="Filtrar processos com status ${escapeHtml(statusLabel)}"
+        >
+          <div class="status-chart-header">
+            <p class="status-chart-label">${escapeHtml(statusLabel)}</p>
+            <p class="status-chart-count">${escapeHtml(String(statusCount))}</p>
+          </div>
+          <p class="status-chart-percent">${escapeHtml(`${statusPercent}% dos processos`)}</p>
+          <div class="status-chart-progress">
+            <span style="width:${escapeHtml(String(statusPercent))}%; background:${escapeHtml(
+    getStatusColor(statusLabel)
+  )};"></span>
+          </div>
+          <div class="status-chart-canvas-wrap">
+            <canvas id="statusChart_${chartIndex}" aria-label="Grafico do status ${escapeHtml(
+    statusLabel
+  )}"></canvas>
+          </div>
+        </button>
+      </article>
+    `;
+}
+
+function createProcessStatusChart(statusLabel, statusCount, totalProcesses, chartIndex) {
+  const chartCanvas = document.getElementById(`statusChart_${chartIndex}`);
+  if (!chartCanvas) return;
+
+  const statusColor = getStatusColor(statusLabel);
+  const chartInstance = new window.Chart(chartCanvas, {
+    type: "doughnut",
+    data: {
+      labels: [statusLabel, "Outros"],
+      datasets: [
+        {
+          data: [statusCount, Math.max(totalProcesses - statusCount, 0)],
+          backgroundColor: [statusColor, CONFIG.CHART_OTHER_SLICE_COLOR],
+          borderColor: CONFIG.CHART_BORDER_COLOR,
+          borderWidth: CONFIG.CHART_BORDER_WIDTH,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+    },
+  });
+
+  dashboardStatusChartsInstances.push(chartInstance);
+}
+
+function updateProcessStatusCharts(processRows) {
+  if (!dashboardStatusCharts) return;
+
+  destroyDashboardStatusCharts();
+
+  const totalProcesses = processRows.length;
+  if (!window.Chart || totalProcesses === 0) {
+    dashboardStatusCharts.innerHTML =
+      '<p class="status-chart-empty">Nenhum processo para exibir status no momento.</p>';
+    return;
+  }
+
+  const statusCountMap = buildProcessStatusCounts(processRows);
+  const orderedStatusLabels = sortStatusLabels(statusCountMap);
+
+  dashboardStatusCharts.innerHTML = orderedStatusLabels
+    .map((statusLabel, chartIndex) =>
+      buildProcessStatusCardHtml(
+        statusLabel,
+        statusCountMap.get(statusLabel) || 0,
+        totalProcesses,
+        chartIndex
+      )
+    )
+    .join("");
+
+  orderedStatusLabels.forEach((statusLabel, chartIndex) => {
+    createProcessStatusChart(
+      statusLabel,
+      statusCountMap.get(statusLabel) || 0,
+      totalProcesses,
+      chartIndex
+    );
+  });
+}
+
+function getWriteOperationContext() {
+  return {
+    resourceKey: writeResource.value,
+    httpMethod: actionToHttpMethod[writeMethod.value],
+    targetId: writeId.value.trim(),
+  };
+}
+
+function validateWriteOperationContext(writeContext) {
+  if (!writeContext.httpMethod) return "Acao invalida. Recarregue a pagina e tente novamente.";
+  if (writeContext.httpMethod === "DELETE") {
+    return "Exclusao permitida apenas pelo botao Excluir na tabela.";
+  }
+  if (writeContext.httpMethod === "PUT" && !writeContext.targetId) {
+    return "Informe o ID para a acao Atualizar.";
+  }
+  return "";
+}
+
+function buildWriteTargetEndpoint(writeContext) {
+  if (writeContext.httpMethod === "POST") {
+    return createRouteByResource[writeContext.resourceKey];
+  }
+  return `/${writeContext.resourceKey}/${encodeURIComponent(writeContext.targetId)}`;
+}
+
+function buildWriteRequestPayload(writeContext) {
+  if (!["POST", "PUT"].includes(writeContext.httpMethod)) return null;
+  return buildPayloadFromSimpleForm(writeContext.resourceKey, writeContext.httpMethod);
+}
+
+async function executeWriteOperationRequest(writeContext, targetEndpoint, requestPayload) {
+  const actionLabel = actionLabelByHttpMethod[writeContext.httpMethod] || writeContext.httpMethod;
+  setStatus(`Executando ${actionLabel} em ${targetEndpoint}...`);
+
+  const apiResponse = await fetchWithFallback(targetEndpoint, {
+    method: writeContext.httpMethod,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: requestPayload ? JSON.stringify(requestPayload) : undefined,
+  });
+
+  const responsePayload = await parseResponseJson(apiResponse);
+  if (!apiResponse.ok) {
+    const message = responsePayload?.error || `Erro HTTP ${apiResponse.status}`;
+    throw new Error(message);
+  }
+
+  return {
+    actionLabel,
+    responsePayload,
+  };
+}
+
+async function refreshResourceListAfterWrite(resourceKey) {
+  const listEndpoint = listRouteByResource[resourceKey];
+  const navButtonId = navButtonByResource[resourceKey];
+  await fetchGet(listEndpoint, `Lista de ${resourceKey}`, navButtonId);
+}
+
 async function submitWriteOperation(event) {
   // Aqui tratamos "Criar" e "Atualizar" do formulário principal.
   // Exclusão foi propositalmente removida deste fluxo para evitar erros de UX.
   event.preventDefault();
 
-  const resource = writeResource.value;
-  const action = writeMethod.value;
-  const method = actionToHttpMethod[action];
-  const id = writeId.value.trim();
-
-  if (!method) {
-    setStatus("Acao invalida. Recarregue a pagina e tente novamente.", "danger");
+  const writeContext = getWriteOperationContext();
+  const validationError = validateWriteOperationContext(writeContext);
+  if (validationError) {
+    setStatus(validationError, "danger");
     return;
   }
 
-  if (method === "DELETE") {
-    setStatus("Exclusao permitida apenas pelo botao Excluir na tabela.", "danger");
+  const targetEndpoint = buildWriteTargetEndpoint(writeContext);
+  const requestPayload = buildWriteRequestPayload(writeContext);
+  if (["POST", "PUT"].includes(writeContext.httpMethod) && !requestPayload) {
+    setStatus("Preencha os campos obrigatorios do formulario selecionado.", "danger");
     return;
-  }
-
-  let endpoint = "";
-  let payload = null;
-
-  if (method === "POST") {
-    endpoint = createRouteByResource[resource];
-  } else {
-    if (!id) {
-      setStatus("Informe o ID para a acao Atualizar.", "danger");
-      return;
-    }
-
-    endpoint = `/${resource}/${encodeURIComponent(id)}`;
-  }
-
-  if (method === "POST" || method === "PUT") {
-    payload = buildPayloadFromSimpleForm(resource, method);
-    if (!payload) {
-      setStatus("Preencha os campos obrigatorios do formulario selecionado.", "danger");
-      return;
-    }
   }
 
   try {
-    const actionLabel = actionLabelByHttpMethod[method] || method;
-    setStatus(`Executando ${actionLabel} em ${endpoint}...`);
+    const { actionLabel, responsePayload } = await executeWriteOperationRequest(
+      writeContext,
+      targetEndpoint,
+      requestPayload
+    );
 
-    const response = await fetchWithFallback(endpoint, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: payload ? JSON.stringify(payload) : undefined,
-    });
-
-    const data = await parseResponseJson(response);
-    if (!response.ok) {
-      const message = data?.error || `Erro HTTP ${response.status}`;
-      throw new Error(message);
-    }
-
-    const resultTitle = `${actionLabel} ${resource}`;
-    renderTable(resultTitle, data || { ok: true });
-    setStatus(`Operacao concluida: ${actionLabel} ${endpoint}`, "success");
+    const resultTitle = `${actionLabel} ${writeContext.resourceKey}`;
+    renderTable(resultTitle, responsePayload || { ok: true });
+    setStatus(`Operacao concluida: ${actionLabel} ${targetEndpoint}`, "success");
     await refreshReferenceData(["escritorios", "advogados", "clientes"]);
-
-    const listEndpoint = listRouteByResource[resource];
-    const navButtonId = navButtonByResource[resource];
-    await fetchGet(listEndpoint, `Lista de ${resource}`, navButtonId);
+    await refreshResourceListAfterWrite(writeContext.resourceKey);
   } catch (error) {
     setStatus(`Falha na operacao: ${error.message}`, "danger");
   }
 }
 
 async function submitProcessEdit() {
-  const id = processEditId.value.trim();
-  if (!id) {
+  const processId = processEditId.value.trim();
+  if (!processId) {
     setStatus("ID do processo invalido para edicao.", "danger");
     return;
   }
 
-  const payload = buildProcessoPayloadFromModal();
-  if (!payload) {
+  const processPayload = buildProcessoPayloadFromModal();
+  if (!processPayload) {
     setStatus("No modal de edicao, informe ao menos o Escritorio ID.", "danger");
     return;
   }
 
   try {
     btnSaveProcessEdit.disabled = true;
-    setStatus(`Atualizando processo ${id}...`);
+    setStatus(`Atualizando processo ${processId}...`);
+    const updateEndpoints = [
+      `/processos/${encodeURIComponent(processId)}`,
+      `/atualizar-processo/${encodeURIComponent(processId)}`,
+    ];
+    let processUpdated = false;
+    let updateError = null;
 
-    const response = await fetchWithFallback(`/processos/${encodeURIComponent(id)}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    for (const updateEndpoint of updateEndpoints) {
+      const apiResponse = await fetchWithFallback(updateEndpoint, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(processPayload),
+      });
 
-    const data = await parseResponseJson(response);
-    if (!response.ok) {
-      const message = data?.error || `Erro HTTP ${response.status}`;
-      throw new Error(message);
+      const responsePayload = await parseResponseJson(apiResponse);
+      if (apiResponse.ok) {
+        processUpdated = true;
+        break;
+      }
+
+      updateError = new Error(
+        responsePayload?.error || `Erro HTTP ${apiResponse.status} (${updateEndpoint})`
+      );
+      // Mantemos fallback apenas quando a rota claramente nao existe.
+      if (
+        apiResponse.status !== FRONTEND_CONSTANTS.HTTP_NOT_FOUND &&
+        apiResponse.status !== FRONTEND_CONSTANTS.HTTP_METHOD_NOT_ALLOWED
+      ) {
+        throw updateError;
+      }
+    }
+
+    if (!processUpdated) {
+      throw updateError || new Error("Nao foi possivel atualizar o processo.");
     }
 
     if (processEditModal) processEditModal.hide();
-    setStatus(`Processo ${id} atualizado com sucesso.`, "success");
+    setStatus(`Processo ${processId} atualizado com sucesso.`, "success");
     await refreshReferenceData(["escritorios", "advogados", "clientes"]);
     await fetchGet("/processos", "Lista de Processos", "btnProcessos");
   } catch (error) {
-    setStatus(`Falha ao atualizar processo ${id}: ${error.message}`, "danger");
+    setStatus(`Falha ao atualizar processo ${processId}: ${error.message}`, "danger");
   } finally {
     btnSaveProcessEdit.disabled = false;
   }
 }
 
-async function handleTableActionClick(event) {
-  // Event delegation: um único listener no <tbody> captura clique nos botões de ação.
-  const editButton = event.target.closest(".btn-row-edit-processo");
-  if (editButton) {
-    const id = editButton.dataset.id;
-    if (!id) {
-      setStatus("Nao foi possivel identificar o processo para edicao.", "danger");
-      return;
-    }
-    await openProcessEditModal(id);
+async function submitEntityEdit() {
+  const resourceKey = entityEditResource.value;
+  const entityId = entityEditId.value.trim();
+  if (!resourceKey || !entityId) {
+    setStatus("Dados insuficientes para atualizar este registro.", "danger");
     return;
   }
 
-  const deleteButton = event.target.closest(".btn-row-delete");
-  if (!deleteButton) return;
+  const entityPayload = buildEntityEditPayload(resourceKey);
+  if (!entityPayload) {
+    setStatus("Preencha os campos obrigatorios do formulario de edicao.", "danger");
+    return;
+  }
 
-  const resource = deleteButton.dataset.resource;
-  const id = deleteButton.dataset.id;
+  try {
+    if (btnSaveEntityEdit) btnSaveEntityEdit.disabled = true;
+    setStatus(`Atualizando ${resourceKey} ${entityId}...`);
 
-  if (!resource || !id) {
+    const apiResponse = await fetchWithFallback(`/${resourceKey}/${encodeURIComponent(entityId)}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(entityPayload),
+    });
+
+    const responsePayload = await parseResponseJson(apiResponse);
+    if (!apiResponse.ok) {
+      const message = responsePayload?.error || `Erro HTTP ${apiResponse.status}`;
+      throw new Error(message);
+    }
+
+    if (entityEditModal) entityEditModal.hide();
+    setStatus(`Registro ${entityId} atualizado com sucesso em ${resourceKey}.`, "success");
+    await refreshReferenceData(["escritorios", "advogados", "clientes"]);
+    await fetchGet(
+      listRouteByResource[resourceKey],
+      `Lista de ${resourceLabelByKey[resourceKey] || resourceKey}`,
+      navButtonByResource[resourceKey]
+    );
+  } catch (error) {
+    setStatus(`Falha ao atualizar ${resourceKey} ${entityId}: ${error.message}`, "danger");
+  } finally {
+    if (btnSaveEntityEdit) btnSaveEntityEdit.disabled = false;
+  }
+}
+
+function getEditActionFromEvent(event) {
+  const editActionButton = event.target.closest(".btn-row-edit-entity");
+  if (!editActionButton) return null;
+  return {
+    resourceKey: editActionButton.dataset.resource,
+    entityId: editActionButton.dataset.id,
+  };
+}
+
+function getDeleteActionFromEvent(event) {
+  const deleteActionButton = event.target.closest(".btn-row-delete");
+  if (!deleteActionButton) return null;
+  return {
+    resourceKey: deleteActionButton.dataset.resource,
+    entityId: deleteActionButton.dataset.id,
+    deleteActionButton,
+  };
+}
+
+async function runEditAction(resourceKey, entityId) {
+  if (!resourceKey || !entityId) {
+    setStatus("Nao foi possivel identificar o item para edicao.", "danger");
+    return;
+  }
+
+  if (resourceKey === "processos") {
+    await openProcessEditModal(entityId);
+    return;
+  }
+
+  await openEntityEditModal(resourceKey, entityId);
+}
+
+async function executeDeleteRequest(resourceKey, entityId) {
+  const apiResponse = await fetchWithFallback(`/${resourceKey}/${encodeURIComponent(entityId)}`, {
+    method: "DELETE",
+  });
+  const responsePayload = await parseResponseJson(apiResponse);
+  if (!apiResponse.ok) {
+    const message = responsePayload?.error || `Erro HTTP ${apiResponse.status}`;
+    throw new Error(message);
+  }
+}
+
+async function runDeleteAction(deleteAction) {
+  const { resourceKey, entityId, deleteActionButton } = deleteAction;
+  if (!resourceKey || !entityId) {
     setStatus("Nao foi possivel identificar o item para exclusao.", "danger");
     return;
   }
 
-  const resourceLabel = resourceLabelByKey[resource] || resource;
-  const confirmed = await askDeleteConfirmation(resourceLabel, id);
-  if (!confirmed) return;
+  const resourceLabel = resourceLabelByKey[resourceKey] || resourceKey;
+  const confirmedDeletion = await askDeleteConfirmation(resourceLabel, entityId);
+  if (!confirmedDeletion) return;
 
   try {
-    deleteButton.disabled = true;
-    setStatus(`Excluindo item ${id} de ${resourceLabel}...`);
-
-    const response = await fetchWithFallback(`/${resource}/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-
-    const data = await parseResponseJson(response);
-    if (!response.ok) {
-      const message = data?.error || `Erro HTTP ${response.status}`;
-      throw new Error(message);
-    }
-
-    setStatus(`Item ${id} excluido com sucesso em ${resourceLabel}.`, "success");
+    deleteActionButton.disabled = true;
+    setStatus(`Excluindo item ${entityId} de ${resourceLabel}...`);
+    await executeDeleteRequest(resourceKey, entityId);
+    setStatus(`Item ${entityId} excluido com sucesso em ${resourceLabel}.`, "success");
     await refreshReferenceData(["escritorios", "advogados", "clientes"]);
     await fetchGet(
-      listRouteByResource[resource],
+      listRouteByResource[resourceKey],
       `Lista de ${resourceLabel}`,
-      navButtonByResource[resource]
+      navButtonByResource[resourceKey]
     );
   } catch (error) {
-    setStatus(`Falha ao excluir item ${id}: ${error.message}`, "danger");
+    setStatus(`Falha ao excluir item ${entityId}: ${error.message}`, "danger");
   } finally {
-    deleteButton.disabled = false;
+    deleteActionButton.disabled = false;
   }
+}
+
+async function handleTableActionClick(event) {
+  // Event delegation: um único listener no <tbody> captura clique nos botões de ação.
+  const editAction = getEditActionFromEvent(event);
+  if (editAction) {
+    await runEditAction(editAction.resourceKey, editAction.entityId);
+    return;
+  }
+
+  const deleteAction = getDeleteActionFromEvent(event);
+  if (!deleteAction) return;
+  await runDeleteAction(deleteAction);
 }
 
 async function askDeleteConfirmation(resourceLabel, id) {
@@ -986,6 +1466,16 @@ async function askDeleteConfirmation(resourceLabel, id) {
     deleteConfirmResolver = resolve;
     deleteConfirmModal.show();
   });
+}
+
+function runSafeAsyncTask(taskRunner, fallbackMessage = "Falha inesperada na interface.") {
+  Promise.resolve()
+    .then(taskRunner)
+    .catch((error) => {
+      console.error(error);
+      const errorMessage = `${fallbackMessage} ${error?.message || ""}`.trim();
+      setStatus(errorMessage, "danger");
+    });
 }
 
 if (btnConfirmDelete) {
@@ -1008,13 +1498,15 @@ if (deleteConfirmModalEl) {
 }
 
 if (btnSaveProcessEdit) {
-  btnSaveProcessEdit.addEventListener("click", submitProcessEdit);
+  btnSaveProcessEdit.addEventListener("click", () => {
+    runSafeAsyncTask(submitProcessEdit, "Falha ao salvar processo.");
+  });
 }
 
 if (formProcessEdit) {
   formProcessEdit.addEventListener("submit", (event) => {
     event.preventDefault();
-    submitProcessEdit();
+    runSafeAsyncTask(submitProcessEdit, "Falha ao salvar processo.");
   });
 }
 
@@ -1022,27 +1514,62 @@ if (processEditModalEl) {
   processEditModalEl.addEventListener("hidden.bs.modal", () => {
     if (formProcessEdit) formProcessEdit.reset();
     processEditId.value = "";
+    processRowBeingEdited = null;
+  });
+}
+
+if (btnSaveEntityEdit) {
+  btnSaveEntityEdit.addEventListener("click", () => {
+    runSafeAsyncTask(submitEntityEdit, "Falha ao salvar alteracoes.");
+  });
+}
+
+if (formEntityEdit) {
+  formEntityEdit.addEventListener("submit", (event) => {
+    event.preventDefault();
+    runSafeAsyncTask(submitEntityEdit, "Falha ao salvar alteracoes.");
+  });
+}
+
+if (entityEditModalEl) {
+  entityEditModalEl.addEventListener("hidden.bs.modal", () => {
+    if (formEntityEdit) formEntityEdit.reset();
+    entityEditResource.value = "";
+    entityEditId.value = "";
+    toggleEntityEditSections("");
   });
 }
 
 document.getElementById("btnDashboard").addEventListener("click", () => {
-  loadDashboard();
+  runSafeAsyncTask(loadDashboard, "Falha ao carregar dashboard.");
 });
 
 document.getElementById("btnAdvogados").addEventListener("click", () => {
-  fetchGet("/advogados", "Lista de Advogados", "btnAdvogados");
+  runSafeAsyncTask(
+    () => fetchGet("/advogados", "Lista de Advogados", "btnAdvogados"),
+    "Falha ao carregar advogados."
+  );
 });
 
 document.getElementById("btnClientes").addEventListener("click", () => {
-  fetchGet("/clientes", "Lista de Clientes", "btnClientes");
+  runSafeAsyncTask(
+    () => fetchGet("/clientes", "Lista de Clientes", "btnClientes"),
+    "Falha ao carregar clientes."
+  );
 });
 
 document.getElementById("btnEscritorios").addEventListener("click", () => {
-  fetchGet("/escritorios", "Lista de Escritorios", "btnEscritorios");
+  runSafeAsyncTask(
+    () => fetchGet("/escritorios", "Lista de Escritorios", "btnEscritorios"),
+    "Falha ao carregar escritorios."
+  );
 });
 
 document.getElementById("btnProcessos").addEventListener("click", () => {
-  fetchGet("/processos", "Lista de Processos", "btnProcessos");
+  runSafeAsyncTask(
+    () => fetchGet("/processos", "Lista de Processos", "btnProcessos"),
+    "Falha ao carregar processos."
+  );
 });
 
 formAdvogadoNome.addEventListener("submit", (event) => {
@@ -1050,7 +1577,10 @@ formAdvogadoNome.addEventListener("submit", (event) => {
   const nome = event.target.nome.value.trim();
   if (!nome) return;
   activateNav("btnAdvogados");
-  fetchGet(`/advogados/nome/${encodeURIComponent(nome)}`, `Advogado por nome: ${nome}`);
+  runSafeAsyncTask(
+    () => fetchGet(`/advogados/nome/${encodeURIComponent(nome)}`, `Advogado por nome: ${nome}`),
+    "Falha ao buscar advogado."
+  );
 });
 
 formClienteNome.addEventListener("submit", (event) => {
@@ -1058,7 +1588,10 @@ formClienteNome.addEventListener("submit", (event) => {
   const nome = event.target.nome.value.trim();
   if (!nome) return;
   activateNav("btnClientes");
-  fetchGet(`/clientes/nome/${encodeURIComponent(nome)}`, `Cliente por nome: ${nome}`);
+  runSafeAsyncTask(
+    () => fetchGet(`/clientes/nome/${encodeURIComponent(nome)}`, `Cliente por nome: ${nome}`),
+    "Falha ao buscar cliente."
+  );
 });
 
 formEscritorioEmail.addEventListener("submit", (event) => {
@@ -1066,7 +1599,11 @@ formEscritorioEmail.addEventListener("submit", (event) => {
   const email = event.target.email.value.trim();
   if (!email) return;
   activateNav("btnEscritorios");
-  fetchGet(`/escritorios/email/${encodeURIComponent(email)}`, `Escritorio por email: ${email}`);
+  runSafeAsyncTask(
+    () =>
+      fetchGet(`/escritorios/email/${encodeURIComponent(email)}`, `Escritorio por email: ${email}`),
+    "Falha ao buscar escritorio por email."
+  );
 });
 
 formEscritorioTelefone.addEventListener("submit", (event) => {
@@ -1074,9 +1611,13 @@ formEscritorioTelefone.addEventListener("submit", (event) => {
   const telefone = event.target.telefone.value.trim();
   if (!telefone) return;
   activateNav("btnEscritorios");
-  fetchGet(
-    `/escritorios/telefone/${encodeURIComponent(telefone)}`,
-    `Escritorio por telefone: ${telefone}`
+  runSafeAsyncTask(
+    () =>
+      fetchGet(
+        `/escritorios/telefone/${encodeURIComponent(telefone)}`,
+        `Escritorio por telefone: ${telefone}`
+      ),
+    "Falha ao buscar escritorio por telefone."
   );
 });
 
@@ -1086,7 +1627,33 @@ btnClearFilter.addEventListener("click", () => {
   refreshFilteredTable();
 });
 
-formWriteOperation.addEventListener("submit", submitWriteOperation);
-tableBody.addEventListener("click", handleTableActionClick);
-void refreshReferenceData(["escritorios", "advogados", "clientes"]);
-loadDashboard();
+if (dashboardStatusCharts) {
+  dashboardStatusCharts.addEventListener("click", (event) => {
+    const statusCardButton = event.target.closest(".status-chart-button");
+    if (!statusCardButton) return;
+    const status = statusCardButton.dataset.status;
+    if (!status) return;
+    runSafeAsyncTask(
+      () => openProcessListByStatus(status),
+      "Falha ao abrir filtro de status."
+    );
+  });
+}
+
+if (btnDashboardStatusClear) {
+  btnDashboardStatusClear.addEventListener("click", () => {
+    runSafeAsyncTask(openAllProcessesFromDashboard, "Falha ao abrir todos os processos.");
+  });
+}
+
+formWriteOperation.addEventListener("submit", (event) => {
+  runSafeAsyncTask(() => submitWriteOperation(event), "Falha ao executar operacao.");
+});
+tableBody.addEventListener("click", (event) => {
+  runSafeAsyncTask(() => handleTableActionClick(event), "Falha na acao da tabela.");
+});
+runSafeAsyncTask(
+  () => refreshReferenceData(["escritorios", "advogados", "clientes"]),
+  "Falha ao carregar dados de referencia."
+);
+runSafeAsyncTask(loadDashboard, "Falha ao iniciar dashboard.");

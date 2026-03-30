@@ -363,6 +363,15 @@ body {
   flex-wrap: wrap;
 }
 
+.table-actions-processos {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+
+.table-actions-processos .btn {
+  white-space: nowrap;
+}
+
 .btn-submit-entity {
   justify-self: start;
   min-width: 220px;
@@ -469,9 +478,147 @@ td {
   height: 220px;
 }
 
+.dashboard-status-wrap {
+  margin: 0 16px 16px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 72%);
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.dashboard-status-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.dashboard-status-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.dashboard-status-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.dashboard-status-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.status-chart-card {
+  min-height: 220px;
+}
+
+.status-chart-button {
+  width: 100%;
+  height: 100%;
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 75%);
+  border-radius: 12px;
+  padding: 10px;
+  background: #f9fbff;
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.status-chart-button:hover {
+  border-color: color-mix(in srgb, var(--color-primary), white 35%);
+  transform: translateY(-1px);
+}
+
+.status-chart-button:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--color-primary), white 45%);
+  outline-offset: 2px;
+}
+
+.status-chart-button.is-selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary), white 60%);
+}
+
+.status-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.status-chart-label {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.status-chart-count {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.status-chart-percent {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #4b5563;
+}
+
+.status-chart-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.status-chart-progress span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.status-chart-skeleton {
+  border: 1px solid color-mix(in srgb, var(--color-primary), white 75%);
+  border-radius: 12px;
+  min-height: 220px;
+  background: linear-gradient(110deg, #eef3fb 8%, #f8fbff 18%, #eef3fb 33%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position-x: -200%;
+  }
+}
+
+.status-chart-canvas-wrap {
+  height: 118px;
+}
+
+.status-chart-empty {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
 @media (max-width: 860px) {
   .dashboard-chart-wrap {
     width: 100%;
+  }
+
+  .dashboard-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-status-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

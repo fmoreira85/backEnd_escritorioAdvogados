@@ -83,6 +83,21 @@
           <div class="dashboard-chart-wrap">
             <canvas id="dashboardChart" aria-label="Grafico operacional do dashboard"></canvas>
           </div>
+
+          <div class="dashboard-status-wrap" aria-label="Graficos de status dos processos">
+            <div class="dashboard-status-head">
+              <div>
+                <h4 class="dashboard-status-title">Processos por status</h4>
+                <p class="dashboard-status-subtitle">
+                  Clique em um card para abrir a lista de processos filtrada por status.
+                </p>
+              </div>
+              <button id="btnDashboardStatusClear" class="btn btn-outline-secondary btn-sm" type="button">
+                Ver todos
+              </button>
+            </div>
+            <div id="dashboardStatusCharts" class="dashboard-status-grid"></div>
+          </div>
         </section>
 
         <section id="filtersPanel" class="panel" aria-label="Filtros" hidden>
@@ -253,7 +268,13 @@
                 </select>
                 <input id="proNumero" class="input form-control" placeholder="Numero" />
                 <input id="proTitulo" class="input form-control" placeholder="Titulo" />
-                <input id="proStatus" class="input form-control" placeholder="Status" />
+                <select id="proStatus" class="input form-select">
+                  <option value="">Selecione um status</option>
+                  <option value="aberto">Aberto</option>
+                  <option value="andamento">Em andamento</option>
+                  <option value="encerrado">Concluido</option>
+                  <option value="arquivado">Arquivado</option>
+                </select>
                 <input id="proDescricao" class="input form-control" placeholder="Descricao" />
               </div>
             </div>
@@ -342,7 +363,13 @@
               </label>
               <label class="field-block" for="processEditStatus">
                 Status
-                <input id="processEditStatus" class="input form-control" />
+                <select id="processEditStatus" class="input form-select">
+                  <option value="">Selecione um status</option>
+                  <option value="aberto">Aberto</option>
+                  <option value="andamento">Em andamento</option>
+                  <option value="encerrado">Concluido</option>
+                  <option value="arquivado">Arquivado</option>
+                </select>
               </label>
               <label class="field-block field-block-full" for="processEditDescricao">
                 Descricao
@@ -358,6 +385,79 @@
       </div>
     </div>
 
-    <script src="./main.js"></script>
+    <div
+      class="modal fade"
+      id="entityEditModal"
+      tabindex="-1"
+      aria-labelledby="entityEditModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="entityEditModalLabel">Editar registro</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <form id="formEntityEdit" class="write-grid">
+              <input id="entityEditResource" type="hidden" />
+              <input id="entityEditId" type="hidden" />
+
+              <div id="entityEditAdvogados" class="field-block field-block-full simple-box" hidden>
+                <strong class="entity-title">Editar Advogado</strong>
+                <div class="simple-grid">
+                  <select id="editAdvEscritorioId" class="input form-select">
+                    <option value="">Selecione um escritorio *</option>
+                  </select>
+                  <input id="editAdvNome" class="input form-control" placeholder="Nome *" />
+                  <input id="editAdvOab" class="input form-control" placeholder="OAB *" />
+                  <input id="editAdvEspecialidade" class="input form-control" placeholder="Especialidade" />
+                  <input id="editAdvEmail" class="input form-control" placeholder="Email" />
+                  <input id="editAdvTelefone" class="input form-control" placeholder="Telefone" />
+                  <select id="editAdvAtivo" class="input form-select">
+                    <option value="1">Ativo</option>
+                    <option value="0">Inativo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="entityEditClientes" class="field-block field-block-full simple-box" hidden>
+                <strong class="entity-title">Editar Cliente</strong>
+                <div class="simple-grid">
+                  <input id="editCliNome" class="input form-control" placeholder="Nome *" />
+                  <input id="editCliDocumento" class="input form-control" placeholder="Documento" />
+                  <input id="editCliEmail" class="input form-control" placeholder="Email" />
+                  <input id="editCliTelefone" class="input form-control" placeholder="Telefone" />
+                  <input id="editCliEndereco" class="input form-control" placeholder="Endereco" />
+                  <input id="editCliCidade" class="input form-control" placeholder="Cidade" />
+                  <input id="editCliEstado" class="input form-control" placeholder="Estado" />
+                  <input id="editCliCep" class="input form-control" placeholder="CEP" />
+                </div>
+              </div>
+
+              <div id="entityEditEscritorios" class="field-block field-block-full simple-box" hidden>
+                <strong class="entity-title">Editar Escritorio</strong>
+                <div class="simple-grid">
+                  <input id="editEscNome" class="input form-control" placeholder="Nome *" />
+                  <input id="editEscCnpj" class="input form-control" placeholder="CNPJ *" />
+                  <input id="editEscEmail" class="input form-control" placeholder="Email" />
+                  <input id="editEscTelefone" class="input form-control" placeholder="Telefone" />
+                  <input id="editEscEndereco" class="input form-control" placeholder="Endereco" />
+                  <input id="editEscCidade" class="input form-control" placeholder="Cidade" />
+                  <input id="editEscEstado" class="input form-control" placeholder="Estado" />
+                  <input id="editEscCep" class="input form-control" placeholder="CEP" />
+                </div>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btnSaveEntityEdit">Salvar alteracoes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
   </body>
 </html>
